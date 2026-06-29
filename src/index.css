@@ -5,6 +5,16 @@
   -webkit-tap-highlight-color: transparent;
 }
 
+/* iOS standalone PWA: tekstvelden krijgen anders geen focus / toetsenbord */
+input,
+textarea,
+select {
+  -webkit-user-select: text;
+  user-select: text;
+  font-size: 16px; /* voorkomt ook auto-zoom bij focus op iOS */
+  touch-action: manipulation;
+}
+
 body {
   margin: 0;
   background: #0f172a;
