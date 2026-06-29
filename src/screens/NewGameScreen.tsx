@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { OnScreenKeyboard } from '../components/OnScreenKeyboard'
 
 const STARTING_SCORES = [301, 501, 701]
 
@@ -9,6 +10,7 @@ export function NewGameScreen() {
   const [legs, setLegs] = useState(3)
   const [sets, setSets] = useState(1)
   const [players, setPlayers] = useState(['Duuk', ''])
+  const [activeField, setActiveField] = useState<number | null>(null)
 
   const addPlayer = () => {
     if (players.length < 4) setPlayers([...players, ''])
@@ -98,13 +100,14 @@ export function NewGameScreen() {
               <div className="w-7 h-7 rounded-full bg-slate-700 flex items-center justify-center text-xs font-bold text-slate-400 flex-shrink-0">
                 {i + 1}
               </div>
-              <input
-                type="text"
-                value={name}
-                onChange={e => updatePlayer(i, e.target.value)}
-                placeholder={`Speler ${i + 1}`}
-                className="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-4 h-12 text-slate-100 placeholder-slate-600 focus:outline-none focus:border-blue-600 transition-colors"
-              />
+              <button
+                onClick={() => setActiveField(i)}
+                className={`flex-1 text-left bg-slate-800 border rounded-xl px-4 h-12 transition-colors ${
+                  activeField === i ? 'border-blue-500' : 'border-slate-700'
+                } ${name ? 'text-slate-100' : 'text-slate-600'}`}
+              >
+                {name || `Speler ${i + 1}`}
+              </button>
               {i >= 2 && (
                 <button
                   onClick={() => removePlayer(i)}
@@ -139,6 +142,15 @@ export function NewGameScreen() {
           Spel starten
         </button>
       </div>
+
+      {activeField !== null && (
+        <OnScreenKeyboard
+          label={`Speler ${activeField + 1}`}
+          value={players[activeField]}
+          onChange={name => updatePlayer(activeField, name)}
+          onClose={() => setActiveField(null)}
+        />
+      )}
     </div>
   )
 }
