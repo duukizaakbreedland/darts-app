@@ -49,7 +49,7 @@ export function Keypad({ value, onChange, onConfirm, onNoScore, onUndo, onQuickS
           disabled={!canUndo}
           className={`h-14 rounded-xl border text-sm font-semibold transition-colors flex items-center justify-center gap-1.5 ${
             canUndo
-              ? 'bg-slate-800 hover:bg-slate-700 active:bg-slate-600 border-slate-700 text-amber-400'
+              ? 'bg-slate-800 hover:bg-slate-700 active:bg-slate-600 border-slate-700 text-slate-300'
               : 'bg-slate-800/50 border-slate-800 text-slate-700 cursor-not-allowed'
           }`}
         >

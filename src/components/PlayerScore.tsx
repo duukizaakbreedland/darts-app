@@ -13,11 +13,9 @@ type PlayerScoreProps = {
 
 function MiniStat({ label, value, active }: { label: string; value: string; active: boolean }) {
   return (
-    <div className="flex flex-col items-center px-3">
-      <span className={`text-sm font-bold leading-tight ${active ? 'text-slate-300' : 'text-slate-600'}`}>
-        {value}
-      </span>
-      <span className="text-[10px] text-slate-600 uppercase tracking-wide">{label}</span>
+    <div className="px-3 text-xs whitespace-nowrap">
+      <span className="text-slate-600">{label}: </span>
+      <span className={`font-bold ${active ? 'text-slate-300' : 'text-slate-600'}`}>{value}</span>
     </div>
   )
 }
@@ -68,10 +66,10 @@ export function PlayerScore({
       </div>
 
       {/* Scheidingslijn + mini-stats: gemiddelde · ronde · darts */}
-      <div className="w-full mt-2 pt-3 border-t border-slate-800 flex items-stretch justify-center divide-x divide-slate-800">
-        <MiniStat label="gem" value={avg.toFixed(1)} active={isActive} />
-        <MiniStat label="ronde" value={String(rounds)} active={isActive} />
-        <MiniStat label="darts" value={String(darts)} active={isActive} />
+      <div className="w-full mt-2 pt-3 border-t border-slate-800 flex items-center justify-center divide-x divide-slate-800">
+        <MiniStat label="Gem" value={avg.toFixed(1)} active={isActive} />
+        <MiniStat label="Ronde" value={String(rounds)} active={isActive} />
+        <MiniStat label="Darts" value={String(darts)} active={isActive} />
       </div>
     </div>
   )
