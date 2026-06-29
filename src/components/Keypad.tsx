@@ -3,10 +3,14 @@ type KeypadProps = {
   onChange: (value: string) => void
   onConfirm: () => void
   onUndo: () => void
+  onQuickScore: (score: number) => void
+  canUndo: boolean
   isBust?: boolean
 }
 
-export function Keypad({ value, onChange, onConfirm, onUndo, isBust }: KeypadProps) {
+const QUICK_SCORES = [26, 41, 45, 60, 85, 100, 140, 180]
+
+export function Keypad({ value, onChange, onConfirm, onUndo, onQuickScore, canUndo, isBust }: KeypadProps) {
   const handleDigit = (digit: string) => {
     if (value.length >= 3) return
     onChange(value + digit)
@@ -23,8 +27,21 @@ export function Keypad({ value, onChange, onConfirm, onUndo, isBust }: KeypadPro
 
   return (
     <div className="flex flex-col gap-2 p-3 bg-slate-900 border-t border-slate-800">
-      {/* Score input display */}
-      <div className={`flex items-center justify-center rounded-xl h-14 mb-1 border transition-colors ${
+      {/* Snelknoppen */}
+      <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1">
+        {QUICK_SCORES.map(s => (
+          <button
+            key={s}
+            onClick={() => onQuickScore(s)}
+            className="flex-shrink-0 h-9 min-w-[3rem] px-3 rounded-lg bg-slate-800 border border-slate-700 text-slate-300 text-sm font-bold active:bg-slate-700 transition-colors"
+          >
+            {s}
+          </button>
+        ))}
+      </div>
+
+      {/* Score-invoer display */}
+      <div className={`flex items-center justify-center rounded-xl h-14 border transition-colors ${
         isBust
           ? 'bg-red-900/20 border-red-700/40'
           : value
@@ -40,7 +57,7 @@ export function Keypad({ value, onChange, onConfirm, onUndo, isBust }: KeypadPro
         )}
       </div>
 
-      {/* Digit grid */}
+      {/* Cijfers */}
       <div className="grid grid-cols-3 gap-2">
         {keys.map((k) => (
           <button
@@ -53,11 +70,16 @@ export function Keypad({ value, onChange, onConfirm, onUndo, isBust }: KeypadPro
         ))}
       </div>
 
-      {/* Bottom row: undo | 0 | backspace */}
+      {/* Onderste rij: undo | 0 | backspace */}
       <div className="grid grid-cols-3 gap-2">
         <button
           onClick={onUndo}
-          className="h-14 rounded-xl bg-slate-800 hover:bg-slate-700 active:bg-slate-600 border border-slate-700 text-amber-400 text-sm font-semibold transition-colors flex items-center justify-center gap-1.5"
+          disabled={!canUndo}
+          className={`h-14 rounded-xl border text-sm font-semibold transition-colors flex items-center justify-center gap-1.5 ${
+            canUndo
+              ? 'bg-slate-800 hover:bg-slate-700 active:bg-slate-600 border-slate-700 text-amber-400'
+              : 'bg-slate-800/50 border-slate-800 text-slate-700 cursor-not-allowed'
+          }`}
         >
           <span className="text-base">↩</span>
           <span>Undo</span>
@@ -76,7 +98,7 @@ export function Keypad({ value, onChange, onConfirm, onUndo, isBust }: KeypadPro
         </button>
       </div>
 
-      {/* Confirm button */}
+      {/* Bevestig */}
       <button
         onClick={onConfirm}
         disabled={!isValid}

@@ -55,10 +55,21 @@ const CHECKOUTS: Record<number, string> = {
     4: 'D2',            3: 'S1 D1',          2: 'D1',
 }
 
+// Bogey numbers: niet uit te gooien met 3 darts bij double-out.
+const BOGEY = new Set([169, 168, 166, 165, 163, 162, 159])
+
 export function getCheckout(score: number): string | undefined {
   return CHECKOUTS[score]
 }
 
-export function isCheckoutRange(score: number): boolean {
-  return score <= 170 && score >= 2 && score !== 169 && score !== 168 && score !== 166 && score !== 165 && score !== 163 && score !== 162 && score !== 159
+/** Kan dit aantal punten in deze beurt (max 3 darts) op een dubbel worden uitgegooid? */
+export function isCheckoutable(score: number): boolean {
+  return score >= 2 && score <= 170 && !BOGEY.has(score)
+}
+
+/** De finishing-dubbel voor scores die in één dart uitgaan (2–40 even, of 50 = bull). */
+export function finishingDouble(score: number): string | null {
+  if (score === 50) return 'Bull'
+  if (score >= 2 && score <= 40 && score % 2 === 0) return `D${score / 2}`
+  return null
 }

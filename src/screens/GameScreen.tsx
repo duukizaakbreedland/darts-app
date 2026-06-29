@@ -1,10 +1,13 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { PlayerScore } from '../components/PlayerScore'
 import { Keypad } from '../components/Keypad'
-import { getCheckout, isCheckoutRange } from '../lib/checkouts'
+import { CheckoutModal } from '../components/CheckoutModal'
+import { HistoryModal } from '../components/HistoryModal'
+import { getCheckout, isCheckoutable } from '../lib/checkouts'
+import { useX01Game, playerAverage, lastVisitPoints } from '../hooks/useX01Game'
 
-interface GameState {
+interface NavState {
   players: string[]
   startingScore: number
   legs: number
@@ -14,84 +17,77 @@ interface GameState {
 export function GameScreen() {
   const location = useLocation()
   const navigate = useNavigate()
-  const { players, startingScore, legs: legsToWin, sets: setsToWin } = (location.state as GameState) ?? {
-    players: ['Duuk', 'CPU'], startingScore: 501, legs: 3, sets: 1
+  const nav = (location.state as NavState) ?? {
+    players: ['Speler 1', 'Speler 2'], startingScore: 501, legs: 3, sets: 1,
   }
 
-  const [activePlayer, setActivePlayer] = useState(0)
+  const game = useX01Game({
+    players: nav.players,
+    startingScore: nav.startingScore,
+    legsToWin: Math.ceil(nav.legs / 2),
+    setsToWin: Math.ceil(nav.sets / 2),
+  })
+
   const [inputValue, setInputValue] = useState('')
-  const [isBust, setIsBust] = useState(false)
-  const [scores, setScores] = useState<number[]>(players.map(() => startingScore))
-  const [legsWon, setLegsWon] = useState<number[]>(players.map(() => 0))
-  const [setsWon, setSetsWon] = useState<number[]>(players.map(() => 0))
-  const [totalScored, setTotalScored] = useState<number[]>(players.map(() => 0))
-  const [turnsPlayed, setTurnsPlayed] = useState<number[]>(players.map(() => 0))
-  const [currentLeg, setCurrentLeg] = useState(1)
-  const [currentSet, setCurrentSet] = useState(1)
+  const [bustFlash, setBustFlash] = useState(false)
+  const [pendingCheckout, setPendingCheckout] = useState<number | null>(null)
+  const [showHistory, setShowHistory] = useState(false)
 
-  const avg = (i: number) =>
-    turnsPlayed[i] === 0 ? 0 : (totalScored[i] / turnsPlayed[i]) * 3
+  const players = nav.players
+  const active = game.activePlayer
+  const activeScore = game.scores[active]
 
-  const handleConfirm = () => {
-    const thrown = parseInt(inputValue)
-    if (isNaN(thrown) || thrown > 180 || thrown < 0) return
+  // Naar game-over springen zodra er een winnaar is
+  useEffect(() => {
+    if (game.winner !== null) {
+      navigate('/game-over', {
+        state: { winner: players[game.winner], players, setsWon: game.setsWon },
+      })
+    }
+  }, [game.winner])
 
-    const remaining = scores[activePlayer] - thrown
+  const handleSubmit = (points: number) => {
+    if (points > 180 || points < 0 || bustFlash) return
+    const remaining = activeScore - points
 
-    if (remaining < 0 || remaining === 1) {
-      setIsBust(true)
-      setTimeout(() => {
-        setIsBust(false)
-        setInputValue('')
-        setActivePlayer(p => 1 - p)
-      }, 900)
+    // Geldige checkout → eerst de dubbel-vraag tonen
+    if (remaining === 0 && isCheckoutable(activeScore)) {
+      setPendingCheckout(points)
       return
     }
 
-    const newScores = [...scores]
-    const newTotalScored = [...totalScored]
-    const newTurns = [...turnsPlayed]
-
-    newTotalScored[activePlayer] += thrown
-    newTurns[activePlayer] += 1
-
-    if (remaining === 0) {
-      // Leg win
-      newScores[activePlayer] = startingScore
-      const newLegs = [...legsWon]
-      newLegs[activePlayer] += 1
-
-      const neededLegs = Math.ceil(legsToWin / 2)
-      if (newLegs[activePlayer] >= neededLegs) {
-        // Set win
-        const newSets = [...setsWon]
-        newSets[activePlayer] += 1
-        newLegs.fill(0)
-
-        const neededSets = Math.ceil(setsToWin / 2)
-        if (newSets[activePlayer] >= neededSets) {
-          setSetsWon(newSets)
-          setLegsWon(newLegs)
-          setScores(newScores)
-          navigate('/game-over', { state: { winner: players[activePlayer], players, setsWon: newSets } })
-          return
-        }
-        setSetsWon(newSets)
-        setCurrentSet(s => s + 1)
-      }
-      setLegsWon(newLegs)
-      setCurrentLeg(l => l + 1)
-      players.forEach((_, i) => { newScores[i] = startingScore })
-    } else {
-      newScores[activePlayer] = remaining
+    // Bust-flash tonen
+    if (remaining < 0 || remaining === 1 || remaining === 0) {
+      setBustFlash(true)
+      game.submit({ points, darts: 3, checkout: false })
+      setInputValue('')
+      setTimeout(() => setBustFlash(false), 900)
+      return
     }
 
-    setScores(newScores)
-    setTotalScored(newTotalScored)
-    setTurnsPlayed(newTurns)
+    game.submit({ points, darts: 3, checkout: false })
     setInputValue('')
-    setActivePlayer(p => 1 - p)
   }
+
+  const handleKeypadConfirm = () => {
+    if (!inputValue) return
+    handleSubmit(parseInt(inputValue))
+  }
+
+  const handleCheckoutConfirm = (darts: number, double: string) => {
+    if (pendingCheckout === null) return
+    game.submit({ points: pendingCheckout, darts, checkout: true, double })
+    setPendingCheckout(null)
+    setInputValue('')
+  }
+
+  const handleUndo = () => {
+    setInputValue('')
+    setBustFlash(false)
+    game.undo()
+  }
+
+  const checkout = isCheckoutable(activeScore) ? getCheckout(activeScore) : undefined
 
   return (
     <div className="flex flex-col h-svh bg-slate-900">
@@ -102,35 +98,50 @@ export function GameScreen() {
         </button>
         <div className="text-center">
           <div className="text-xs text-slate-600 uppercase tracking-widest font-medium">
-            Set {currentSet} · Leg {currentLeg}
+            Set {game.currentSet} · Leg {game.currentLeg}
           </div>
-          <div className="text-sm font-bold text-slate-200">{startingScore} · Double Out</div>
+          <div className="text-sm font-bold text-slate-200">{nav.startingScore} · Double Out</div>
         </div>
-        <div className="w-12" />
+        <button
+          onClick={() => setShowHistory(true)}
+          className="text-slate-500 hover:text-slate-300 text-sm transition-colors"
+        >
+          ☰
+        </button>
       </div>
 
-      {/* Player scores */}
+      {/* Speler-scores */}
       <div className="flex">
         {players.map((name, i) => (
           <PlayerScore
             key={i}
             name={name}
-            score={scores[i]}
-            setsWon={setsWon[i]}
-            legsWon={legsWon[i]}
-            avg={avg(i)}
-            isActive={activePlayer === i}
-            checkout={isCheckoutRange(scores[i]) ? getCheckout(scores[i]) : undefined}
+            score={game.scores[i]}
+            setsWon={game.setsWon[i]}
+            legsWon={game.legsWon[i]}
+            avg={playerAverage(game.visits, i)}
+            isActive={active === i}
+            lastScore={lastVisitPoints(game.visits, i, game.currentLeg, game.currentSet)}
           />
         ))}
       </div>
 
-      {/* Turn indicator */}
-      <div className="flex items-center justify-center py-2.5 gap-2 border-b border-slate-800">
-        <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
-        <span className="text-xs text-blue-400 font-semibold uppercase tracking-widest">
-          {players[activePlayer]} aan de beurt
-        </span>
+      {/* Checkout-banner — prominent */}
+      <div className="h-12 flex items-center justify-center border-b border-slate-800">
+        {checkout ? (
+          <div className="flex items-center gap-2">
+            <span className="text-emerald-400">🎯</span>
+            <span className="text-xs text-slate-500 uppercase tracking-widest">Uitgooien</span>
+            <span className="text-base font-bold text-emerald-400 tracking-wide">{checkout}</span>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
+            <span className="text-xs text-blue-400 font-semibold uppercase tracking-widest">
+              {players[active]} aan de beurt
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Keypad */}
@@ -138,11 +149,32 @@ export function GameScreen() {
         <Keypad
           value={inputValue}
           onChange={setInputValue}
-          onConfirm={handleConfirm}
-          onUndo={() => { setInputValue(''); setIsBust(false) }}
-          isBust={isBust}
+          onConfirm={handleKeypadConfirm}
+          onQuickScore={handleSubmit}
+          onUndo={handleUndo}
+          canUndo={game.canUndo}
+          isBust={bustFlash}
         />
       </div>
+
+      {/* Modals */}
+      {pendingCheckout !== null && (
+        <CheckoutModal
+          playerName={players[active]}
+          remaining={activeScore}
+          onConfirm={handleCheckoutConfirm}
+          onCancel={() => setPendingCheckout(null)}
+        />
+      )}
+      {showHistory && (
+        <HistoryModal
+          players={players}
+          visits={game.visits}
+          currentLeg={game.currentLeg}
+          currentSet={game.currentSet}
+          onClose={() => setShowHistory(false)}
+        />
+      )}
     </div>
   )
 }
