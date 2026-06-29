@@ -13,7 +13,7 @@ type PlayerScoreProps = {
 
 function MiniStat({ label, value, active }: { label: string; value: string; active: boolean }) {
   return (
-    <div className="flex flex-col items-center px-2">
+    <div className="flex flex-col items-center px-3">
       <span className={`text-sm font-bold leading-tight ${active ? 'text-slate-300' : 'text-slate-600'}`}>
         {value}
       </span>
@@ -40,17 +40,10 @@ export function PlayerScore({
       </div>
 
       {/* Sets / legs */}
-      <div className="text-[11px] text-slate-500 mb-2">
+      <div className="text-[11px] text-slate-500 mb-3">
         <span className={`font-bold ${isActive ? 'text-slate-300' : 'text-slate-600'}`}>{setsWon}</span> sets
         <span className="mx-1 text-slate-700">·</span>
         <span className={`font-bold ${isActive ? 'text-slate-300' : 'text-slate-600'}`}>{legsWon}</span> legs
-      </div>
-
-      {/* Mini-stats: gemiddelde · ronde · darts */}
-      <div className="flex items-stretch divide-x divide-slate-800 mb-2">
-        <MiniStat label="gem" value={avg.toFixed(1)} active={isActive} />
-        <MiniStat label="ronde" value={String(rounds)} active={isActive} />
-        <MiniStat label="darts" value={String(darts)} active={isActive} />
       </div>
 
       {/* Grote score */}
@@ -72,6 +65,13 @@ export function PlayerScore({
             )}
           </span>
         )}
+      </div>
+
+      {/* Scheidingslijn + mini-stats: gemiddelde · ronde · darts */}
+      <div className="w-full mt-2 pt-3 border-t border-slate-800 flex items-stretch justify-center divide-x divide-slate-800">
+        <MiniStat label="gem" value={avg.toFixed(1)} active={isActive} />
+        <MiniStat label="ronde" value={String(rounds)} active={isActive} />
+        <MiniStat label="darts" value={String(darts)} active={isActive} />
       </div>
     </div>
   )
