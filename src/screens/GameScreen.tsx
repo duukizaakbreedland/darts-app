@@ -133,18 +133,14 @@ export function GameScreen() {
         })}
       </div>
 
-      {/* Checkout-banner — prominent */}
-      <div className="h-12 flex items-center justify-center border-b border-slate-800">
+      {/* Checkout / beurt-indicator */}
+      <div className="flex items-center justify-center py-3 border-b border-slate-800 min-h-14">
         {checkout ? (
-          <div className="flex items-center gap-2">
-            <span className="text-emerald-400">🎯</span>
-            <span className="text-xs text-slate-500 uppercase tracking-widest">Uitgooien</span>
-            <span className="text-base font-bold text-emerald-400 tracking-wide">{checkout}</span>
-          </div>
+          <span className="text-3xl font-bold text-emerald-400 tracking-wide">{checkout}</span>
         ) : (
           <div className="flex items-center gap-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
-            <span className="text-xs text-blue-400 font-semibold uppercase tracking-widest">
+            <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />
+            <span className="text-base text-blue-400 font-semibold uppercase tracking-widest">
               {players[active]} aan de beurt
             </span>
           </div>
