@@ -167,17 +167,35 @@ export function playerAverage(visits: Visit[], player: number): number {
   return darts === 0 ? 0 : (points / darts) * 3
 }
 
-/** Punten van de laatste visit van een speler in de huidige leg (voor weergave). */
-export function lastVisitPoints(
+/** Aantal rondes en darts van een speler in de huidige leg. */
+export function legStats(
   visits: Visit[],
   player: number,
   leg: number,
   set: number
-): number | null {
+): { rounds: number; darts: number } {
+  let rounds = 0
+  let darts = 0
+  for (const v of visits) {
+    if (v.player === player && v.leg === leg && v.set === set) {
+      rounds += 1
+      darts += v.darts
+    }
+  }
+  return { rounds, darts }
+}
+
+/** De laatste visit van een speler in de huidige leg (voor weergave). */
+export function lastVisit(
+  visits: Visit[],
+  player: number,
+  leg: number,
+  set: number
+): Visit | null {
   for (let i = visits.length - 1; i >= 0; i--) {
     const v = visits[i]
     if (v.player === player && v.leg === leg && v.set === set) {
-      return v.bust ? 0 : v.points
+      return v
     }
   }
   return null

@@ -5,7 +5,7 @@ import { Keypad } from '../components/Keypad'
 import { CheckoutModal } from '../components/CheckoutModal'
 import { HistoryModal } from '../components/HistoryModal'
 import { getCheckout, isCheckoutable } from '../lib/checkouts'
-import { useX01Game, playerAverage, lastVisitPoints } from '../hooks/useX01Game'
+import { useX01Game, playerAverage, legStats, lastVisit } from '../hooks/useX01Game'
 
 interface NavState {
   players: string[]
@@ -112,18 +112,25 @@ export function GameScreen() {
 
       {/* Speler-scores */}
       <div className="flex">
-        {players.map((name, i) => (
-          <PlayerScore
-            key={i}
-            name={name}
-            score={game.scores[i]}
-            setsWon={game.setsWon[i]}
-            legsWon={game.legsWon[i]}
-            avg={playerAverage(game.visits, i)}
-            isActive={active === i}
-            lastScore={lastVisitPoints(game.visits, i, game.currentLeg, game.currentSet)}
-          />
-        ))}
+        {players.map((name, i) => {
+          const stats = legStats(game.visits, i, game.currentLeg, game.currentSet)
+          const lv = lastVisit(game.visits, i, game.currentLeg, game.currentSet)
+          return (
+            <PlayerScore
+              key={i}
+              name={name}
+              score={game.scores[i]}
+              setsWon={game.setsWon[i]}
+              legsWon={game.legsWon[i]}
+              avg={playerAverage(game.visits, i)}
+              rounds={stats.rounds}
+              darts={stats.darts}
+              isActive={active === i}
+              lastScore={lv ? lv.points : null}
+              lastBust={lv ? lv.bust : false}
+            />
+          )
+        })}
       </div>
 
       {/* Checkout-banner — prominent */}
@@ -150,6 +157,7 @@ export function GameScreen() {
           value={inputValue}
           onChange={setInputValue}
           onConfirm={handleKeypadConfirm}
+          onNoScore={() => handleSubmit(0)}
           onQuickScore={handleSubmit}
           onUndo={handleUndo}
           canUndo={game.canUndo}
