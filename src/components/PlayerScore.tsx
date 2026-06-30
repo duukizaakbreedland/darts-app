@@ -9,6 +9,7 @@ type PlayerScoreProps = {
   isActive: boolean
   lastScore: number | null
   lastBust: boolean
+  checkout?: string
 }
 
 function MiniStat({ label, value, active }: { label: string; value: string; active: boolean }) {
@@ -21,7 +22,7 @@ function MiniStat({ label, value, active }: { label: string; value: string; acti
 }
 
 export function PlayerScore({
-  name, score, setsWon, legsWon, avg, rounds, darts, isActive, lastScore, lastBust,
+  name, score, setsWon, legsWon, avg, rounds, darts, isActive, lastScore, lastBust, checkout,
 }: PlayerScoreProps) {
   return (
     <div className={`flex-1 flex flex-col items-center text-center p-4 border-b-2 transition-all ${
@@ -51,9 +52,11 @@ export function PlayerScore({
         {score}
       </div>
 
-      {/* Laatste worp */}
-      <div className="mt-2 h-5">
-        {lastScore !== null && (
+      {/* Checkout-suggestie (op een finish) of laatste worp */}
+      <div className="mt-2 h-5 flex items-center justify-center">
+        {checkout ? (
+          <span className="text-sm font-bold text-emerald-400 tracking-wide">{checkout}</span>
+        ) : lastScore !== null ? (
           <span className="text-xs text-slate-500">
             laatste:{' '}
             {lastBust ? (
@@ -62,7 +65,7 @@ export function PlayerScore({
               <span className="font-bold text-slate-400">{lastScore}</span>
             )}
           </span>
-        )}
+        ) : null}
       </div>
 
       {/* Scheidingslijn + mini-stats: gemiddelde · ronde · darts */}

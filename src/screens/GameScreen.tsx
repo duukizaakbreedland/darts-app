@@ -87,8 +87,6 @@ export function GameScreen() {
     game.undo()
   }
 
-  const checkout = isCheckoutable(activeScore) ? getCheckout(activeScore) : undefined
-
   return (
     <div className="flex flex-col h-svh bg-slate-900 pt-[env(safe-area-inset-top)]">
       {/* Header */}
@@ -132,23 +130,20 @@ export function GameScreen() {
               isActive={active === i}
               lastScore={lv ? lv.points : null}
               lastBust={lv ? lv.bust : false}
+              checkout={isCheckoutable(game.scores[i]) ? getCheckout(game.scores[i]) : undefined}
             />
           )
         })}
       </div>
 
-      {/* Checkout / beurt-indicator */}
+      {/* Beurt-indicator */}
       <div className="h-12 flex items-center justify-center border-b border-slate-800">
-        {checkout ? (
-          <span className="text-2xl font-bold text-emerald-400 tracking-wide leading-none">{checkout}</span>
-        ) : (
-          <div className="flex items-center gap-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
-            <span className="text-xs text-blue-400 font-semibold uppercase tracking-widest">
-              {players[active]} aan de beurt
-            </span>
-          </div>
-        )}
+        <div className="flex items-center gap-2">
+          <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
+          <span className="text-xs text-blue-400 font-semibold uppercase tracking-widest">
+            {players[active]} aan de beurt
+          </span>
+        </div>
       </div>
 
       {/* Keypad */}
