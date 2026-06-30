@@ -7,6 +7,8 @@ import { GameOverScreen } from './screens/GameOverScreen'
 import { StatsScreen } from './screens/StatsScreen'
 import { SettingsScreen } from './screens/SettingsScreen'
 import { ProfilesScreen } from './screens/ProfilesScreen'
+import { AtcSetupScreen } from './screens/AtcSetupScreen'
+import { AroundTheClockScreen } from './screens/AroundTheClockScreen'
 
 function App() {
   return (
@@ -19,6 +21,8 @@ function App() {
         <Route path="/stats" element={<StatsScreen />} />
         <Route path="/settings" element={<SettingsScreen />} />
         <Route path="/profiles" element={<ProfilesScreen />} />
+        <Route path="/training/atc" element={<AtcSetupScreen />} />
+        <Route path="/training/atc/play" element={<AroundTheClockScreen />} />
       </Routes>
     </BrowserRouter>
   )

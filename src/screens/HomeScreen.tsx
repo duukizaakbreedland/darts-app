@@ -1,7 +1,12 @@
 import { useNavigate } from 'react-router-dom'
 import { BottomNav } from '../components/BottomNav'
 
-const TRAINING = ['Cricket', 'Around the Clock', 'Shanghai', 'Checkout']
+const TRAINING: { name: string; path?: string }[] = [
+  { name: 'Cricket' },
+  { name: 'Around the Clock', path: '/training/atc' },
+  { name: 'Shanghai' },
+  { name: 'Checkout' },
+]
 
 export function HomeScreen() {
   const navigate = useNavigate()
@@ -24,15 +29,26 @@ export function HomeScreen() {
         <div className="flex flex-col gap-3">
           <span className="text-xs text-slate-600 uppercase tracking-widest font-medium">Training</span>
           <div className="grid grid-cols-2 gap-3">
-            {TRAINING.map(name => (
-              <div
-                key={name}
-                className="bg-slate-800/50 border border-slate-800 rounded-2xl p-4 select-none"
-              >
-                <div className="text-sm font-semibold text-slate-400">{name}</div>
-                <div className="text-[10px] uppercase tracking-widest text-slate-600 mt-3">Binnenkort</div>
-              </div>
-            ))}
+            {TRAINING.map(({ name, path }) =>
+              path ? (
+                <button
+                  key={name}
+                  onClick={() => navigate(path)}
+                  className="bg-slate-800 border border-slate-700 rounded-2xl p-4 text-left active:bg-slate-700 transition-colors"
+                >
+                  <div className="text-sm font-semibold text-slate-100">{name}</div>
+                  <div className="text-[10px] uppercase tracking-widest text-blue-400 mt-3">Spelen</div>
+                </button>
+              ) : (
+                <div
+                  key={name}
+                  className="bg-slate-800/50 border border-slate-800 rounded-2xl p-4 select-none"
+                >
+                  <div className="text-sm font-semibold text-slate-400">{name}</div>
+                  <div className="text-[10px] uppercase tracking-widest text-slate-600 mt-3">Binnenkort</div>
+                </div>
+              )
+            )}
           </div>
         </div>
       </div>

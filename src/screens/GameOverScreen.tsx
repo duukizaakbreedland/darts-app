@@ -3,7 +3,10 @@ import { useLocation, useNavigate } from 'react-router-dom'
 export function GameOverScreen() {
   const location = useLocation()
   const navigate = useNavigate()
-  const { winner } = (location.state as { winner: string }) ?? { winner: '?' }
+  const { winner, rematchPath } = (location.state as { winner: string; rematchPath?: string }) ?? {
+    winner: '?',
+  }
+  const rematch = rematchPath ?? '/new-game'
 
   return (
     <div className="flex flex-col items-center justify-center min-h-svh bg-slate-900 px-8 pb-8 gap-8 pt-[calc(env(safe-area-inset-top)_+_2rem)]">
@@ -15,7 +18,7 @@ export function GameOverScreen() {
 
       <div className="flex flex-col w-full max-w-xs gap-3">
         <button
-          onClick={() => navigate('/new-game')}
+          onClick={() => navigate(rematch)}
           className="h-14 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-lg transition-colors shadow-lg shadow-blue-900/30"
         >
           Nieuw spel
