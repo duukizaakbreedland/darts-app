@@ -92,9 +92,13 @@ export function GameScreen() {
   return (
     <div className="flex flex-col h-svh bg-slate-900 pt-[env(safe-area-inset-top)]">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-slate-800">
-        <button onClick={() => navigate(-1)} className="text-slate-500 hover:text-slate-300 text-sm transition-colors">
-          ← Terug
+      <div className="flex items-center justify-between px-2 py-2 border-b border-slate-800">
+        <button
+          onClick={() => navigate(-1)}
+          className="flex items-center gap-1 h-11 px-3 rounded-lg text-slate-300 active:bg-slate-800 transition-colors"
+        >
+          <span className="text-2xl leading-none">‹</span>
+          <span className="text-sm font-medium">Terug</span>
         </button>
         <div className="text-center">
           <div className="text-xs text-slate-600 uppercase tracking-widest font-medium">
@@ -104,7 +108,7 @@ export function GameScreen() {
         </div>
         <button
           onClick={() => setShowHistory(true)}
-          className="text-slate-500 hover:text-slate-300 text-sm transition-colors"
+          className="w-11 h-11 flex items-center justify-center rounded-lg text-slate-300 text-2xl active:bg-slate-800 transition-colors"
         >
           ☰
         </button>

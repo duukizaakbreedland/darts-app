@@ -41,17 +41,17 @@ export function Keypad({ value, onChange, onConfirm, onNoScore, onUndo, canUndo,
           <span>Undo</span>
         </button>
 
-        <div className={`flex items-center justify-center rounded-xl border transition-colors ${
+        <div className={`flex items-center justify-center rounded-xl border-2 shadow-[inset_0_2px_6px_rgba(0,0,0,0.45)] transition-colors ${
           isBust
-            ? 'bg-red-900/20 border-red-700/40'
+            ? 'bg-red-950 border-red-600/60'
             : value
-            ? 'bg-slate-800 border-blue-700/40'
-            : 'bg-slate-800/50 border-slate-700/30'
+            ? 'bg-slate-950 border-blue-500/70'
+            : 'bg-slate-950 border-slate-700'
         }`}>
           {isBust ? (
-            <span className="text-base font-bold text-red-400 tracking-wide">BUST</span>
+            <span className="text-lg font-bold text-red-400 tracking-wide">BUST</span>
           ) : (
-            <span className={`text-4xl font-bold tracking-wider ${value ? 'text-slate-100' : 'text-slate-700'}`}>
+            <span className={`text-5xl font-bold tracking-wider ${value ? 'text-white' : 'text-slate-700'}`}>
               {value || '—'}
             </span>
           )}
