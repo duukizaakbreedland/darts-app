@@ -4,14 +4,11 @@ type KeypadProps = {
   onConfirm: () => void
   onNoScore: () => void
   onUndo: () => void
-  onQuickScore: (score: number) => void
   canUndo: boolean
   isBust?: boolean
 }
 
-const QUICK_SCORES = [26, 41, 45, 60, 85, 100, 140, 180]
-
-export function Keypad({ value, onChange, onConfirm, onNoScore, onUndo, onQuickScore, canUndo, isBust }: KeypadProps) {
+export function Keypad({ value, onChange, onConfirm, onNoScore, onUndo, canUndo, isBust }: KeypadProps) {
   const handleDigit = (digit: string) => {
     if (value.length >= 3) return
     onChange(value + digit)
@@ -29,19 +26,6 @@ export function Keypad({ value, onChange, onConfirm, onNoScore, onUndo, onQuickS
 
   return (
     <div className="flex flex-col gap-2 p-3 bg-slate-900 border-t border-slate-800">
-      {/* Snelknoppen — gecentreerd */}
-      <div className="flex flex-wrap gap-1.5 justify-center pb-1">
-        {QUICK_SCORES.map(s => (
-          <button
-            key={s}
-            onClick={() => onQuickScore(s)}
-            className="h-9 px-3.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-300 text-sm font-bold active:bg-slate-700 transition-colors"
-          >
-            {s}
-          </button>
-        ))}
-      </div>
-
       {/* Undo | invoer | backspace */}
       <div className="grid grid-cols-3 gap-2">
         <button

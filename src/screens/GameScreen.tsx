@@ -154,7 +154,6 @@ export function GameScreen() {
           onChange={setInputValue}
           onConfirm={handleKeypadConfirm}
           onNoScore={() => handleSubmit(0)}
-          onQuickScore={handleSubmit}
           onUndo={handleUndo}
           canUndo={game.canUndo}
           isBust={bustFlash}
