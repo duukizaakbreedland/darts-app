@@ -245,33 +245,32 @@ export function NewGameScreen() {
           </button>
         )}
 
-        {/* Computer-niveau (alleen bij computer in het spel) */}
-        {hasCpu && (
-          <div className="flex flex-col gap-2 bg-slate-800/40 border border-slate-800 rounded-xl px-4 py-3 mt-1">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-slate-300">Computer-niveau</span>
-              <span className="text-xs text-slate-500">
-                Niveau <span className="font-bold text-blue-300">{cpuLevel}</span> · ~{cpuTargetAverage(cpuLevel)} gem.
-              </span>
-            </div>
-            <div className="flex gap-1">
-              {Array.from({ length: CPU_LEVELS }, (_, i) => i + 1).map(lvl => (
-                <button
-                  key={lvl}
-                  onClick={() => setCpuLevel(lvl)}
-                  className={`flex-1 h-10 rounded-lg text-sm font-bold transition-colors ${
-                    cpuLevel === lvl
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-slate-800 border border-slate-700 text-slate-400 active:bg-slate-700'
-                  }`}
-                >
-                  {lvl}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
+
+      {/* Computer-niveau (alleen bij computer in het spel) */}
+      {hasCpu && (
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-slate-600 uppercase tracking-widest font-medium">Computer-niveau</span>
+            <span className="text-[11px] text-slate-500">~{cpuTargetAverage(cpuLevel)} gem.</span>
+          </div>
+          <div className="flex gap-1.5">
+            {Array.from({ length: CPU_LEVELS }, (_, i) => i + 1).map(lvl => (
+              <button
+                key={lvl}
+                onClick={() => setCpuLevel(lvl)}
+                className={`flex-1 h-12 rounded-lg text-base font-bold transition-colors ${
+                  cpuLevel === lvl
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-slate-800 border border-slate-700 text-slate-400 active:bg-slate-700'
+                }`}
+              >
+                {lvl}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Score */}
       <div className="flex flex-col gap-3">

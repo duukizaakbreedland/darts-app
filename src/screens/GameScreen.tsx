@@ -145,10 +145,11 @@ export function GameScreen() {
         {players.map((name, i) => {
           const stats = legStats(game.visits, i, game.currentLeg, game.currentSet)
           const lv = lastVisit(game.visits, i, game.currentLeg, game.currentSet)
+          const displayName = cpuLevels[i] != null ? `${name} · niv. ${cpuLevels[i]}` : name
           return (
             <PlayerScore
               key={i}
-              name={name}
+              name={displayName}
               score={game.scores[i]}
               setsWon={game.setsWon[i]}
               legsWon={game.legsWon[i]}
