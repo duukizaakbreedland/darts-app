@@ -4,7 +4,7 @@ export function HomeScreen() {
   const navigate = useNavigate()
 
   return (
-    <div className="flex flex-col min-h-svh bg-slate-900 p-5 gap-6">
+    <div className="flex flex-col min-h-svh bg-slate-900 px-5 pb-5 gap-6 pt-[calc(env(safe-area-inset-top)_+_1.25rem)]">
       {/* Header */}
       <div className="pt-4">
         <h1 className="text-3xl font-bold text-slate-100 tracking-tight">Darts</h1>

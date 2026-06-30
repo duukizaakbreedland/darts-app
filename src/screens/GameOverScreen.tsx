@@ -6,7 +6,7 @@ export function GameOverScreen() {
   const { winner } = (location.state as { winner: string }) ?? { winner: '?' }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-svh bg-slate-900 p-8 gap-8">
+    <div className="flex flex-col items-center justify-center min-h-svh bg-slate-900 px-8 pb-8 gap-8 pt-[calc(env(safe-area-inset-top)_+_2rem)]">
       <div className="text-center">
         <div className="text-6xl mb-6">🏆</div>
         <h1 className="text-3xl font-bold text-slate-100 mb-2">{winner} wint!</h1>

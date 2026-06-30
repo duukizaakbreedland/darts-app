@@ -90,7 +90,7 @@ export function GameScreen() {
   const checkout = isCheckoutable(activeScore) ? getCheckout(activeScore) : undefined
 
   return (
-    <div className="flex flex-col h-svh bg-slate-900">
+    <div className="flex flex-col h-svh bg-slate-900 pt-[env(safe-area-inset-top)]">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-slate-800">
         <button onClick={() => navigate(-1)} className="text-slate-500 hover:text-slate-300 text-sm transition-colors">

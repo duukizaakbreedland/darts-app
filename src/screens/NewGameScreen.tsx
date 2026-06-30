@@ -36,7 +36,7 @@ export function NewGameScreen() {
   }
 
   return (
-    <div className="flex flex-col min-h-svh bg-slate-900 p-5 gap-6">
+    <div className="flex flex-col min-h-svh bg-slate-900 px-5 pb-5 gap-6 pt-[calc(env(safe-area-inset-top)_+_1.25rem)]">
       <div className="pt-4 flex items-center gap-4">
         <button onClick={() => navigate(-1)} className="text-slate-500 hover:text-slate-300 transition-colors">
           ←

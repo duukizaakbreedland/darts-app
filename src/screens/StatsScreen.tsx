@@ -4,7 +4,7 @@ export function StatsScreen() {
   const navigate = useNavigate()
 
   return (
-    <div className="flex flex-col min-h-svh bg-slate-900 p-5 gap-6">
+    <div className="flex flex-col min-h-svh bg-slate-900 px-5 pb-5 gap-6 pt-[calc(env(safe-area-inset-top)_+_1.25rem)]">
       <div className="pt-4 flex items-center justify-between">
         <h1 className="text-3xl font-bold text-slate-100 tracking-tight">Statistieken</h1>
       </div>
