@@ -10,12 +10,12 @@ export interface GameConfig {
 export interface Visit {
   player: number
   points: number
-  darts: number
+  darts: number // darts gebruikt voor de checkout (bij checkout), anders 3
   remainingBefore: number
   remainingAfter: number
   bust: boolean
   checkout: boolean
-  double?: string
+  dartsAtDouble?: number // darts gegooid op een dubbel (alleen bij checkout)
   leg: number
   set: number
 }
@@ -41,7 +41,7 @@ export type SubmitPayload = {
   points: number
   darts: number
   checkout: boolean
-  double?: string
+  dartsAtDouble?: number
 }
 
 type Action =
@@ -78,7 +78,7 @@ function reducer(config: GameConfig): (state: GameState, action: Action) => Game
 
     const active = p.activePlayer
     const before = p.scores[active]
-    const { points, darts, checkout, double } = action.payload
+    const { points, darts, checkout, dartsAtDouble } = action.payload
     const remaining = before - points
 
     // Bust: te ver, op 1 blijven, of 0 zonder geldige checkout
@@ -93,7 +93,7 @@ function reducer(config: GameConfig): (state: GameState, action: Action) => Game
       remainingAfter: isBust ? before : remaining,
       bust: isBust,
       checkout: checkout && !isBust,
-      double: checkout && !isBust ? double : undefined,
+      dartsAtDouble: checkout && !isBust ? dartsAtDouble : undefined,
       leg: p.currentLeg,
       set: p.currentSet,
     }

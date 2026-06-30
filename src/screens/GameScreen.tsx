@@ -74,9 +74,9 @@ export function GameScreen() {
     handleSubmit(parseInt(inputValue))
   }
 
-  const handleCheckoutConfirm = (darts: number, double: string) => {
+  const handleCheckoutConfirm = (dartsForCheckout: number, dartsAtDouble: number) => {
     if (pendingCheckout === null) return
-    game.submit({ points: pendingCheckout, darts, checkout: true, double })
+    game.submit({ points: pendingCheckout, darts: dartsForCheckout, checkout: true, dartsAtDouble })
     setPendingCheckout(null)
     setInputValue('')
   }
@@ -168,7 +168,6 @@ export function GameScreen() {
       {pendingCheckout !== null && (
         <CheckoutModal
           playerName={players[active]}
-          remaining={activeScore}
           onConfirm={handleCheckoutConfirm}
           onCancel={() => setPendingCheckout(null)}
         />
