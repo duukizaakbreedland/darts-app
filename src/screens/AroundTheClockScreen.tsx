@@ -115,26 +115,37 @@ export function AroundTheClockScreen() {
   // Na de 3e pijl automatisch door naar de volgende speler (mens én computer)
   useEffect(() => {
     if (game.winner !== null || game.turnDarts.length < 3) return
-    const id = setTimeout(() => game.pass(), 800)
+    const id = setTimeout(() => game.pass(), 650)
     return () => clearTimeout(id)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [game.turnDarts.length, game.winner])
 
   const canUndo = !activeIsCpu && game.turnDarts.length > 0
 
+  const inputDisabled = activeIsCpu || turnDone
+
   return (
     <div className="flex flex-col h-svh bg-slate-900 pt-[env(safe-area-inset-top)]">
-      {/* Header */}
-      <div className="flex items-center justify-between px-2 py-2 border-b border-slate-800">
+      {/* Header: terug | titel | undo */}
+      <div className="relative flex items-center justify-center h-14 px-2 border-b border-slate-800">
         <button
-          onClick={() => navigate('/')}
-          className="flex items-center gap-1 h-11 px-3 rounded-lg text-slate-300 active:bg-slate-800 transition-colors"
+          onClick={() => navigate('/training/atc')}
+          className="absolute left-1 flex items-center gap-1 h-11 px-3 rounded-lg text-slate-300 active:bg-slate-800 transition-colors"
         >
           <span className="text-2xl leading-none">‹</span>
           <span className="text-sm font-medium">Terug</span>
         </button>
         <div className="text-sm font-bold text-slate-200">Around the Clock</div>
-        <div className="w-[88px]" />
+        <button
+          onClick={() => game.undo()}
+          disabled={!canUndo}
+          aria-label="Ongedaan maken"
+          className={`absolute right-1 w-11 h-11 flex items-center justify-center rounded-lg text-xl transition-colors ${
+            canUndo ? 'text-slate-300 active:bg-slate-800' : 'text-slate-700 cursor-not-allowed'
+          }`}
+        >
+          ↩
+        </button>
       </div>
 
       {/* Speler-panelen */}
@@ -145,20 +156,20 @@ export function AroundTheClockScreen() {
           return (
             <div
               key={i}
-              className={`flex-1 flex flex-col items-center text-center p-4 border-b-2 transition-all ${
+              className={`flex-1 flex flex-col items-center text-center p-3 border-b-2 transition-all ${
                 isActive ? 'bg-blue-900/20 border-blue-500' : 'bg-slate-900 border-slate-800'
               }`}
             >
-              <div className="flex items-center justify-center gap-2 mb-2">
+              <div className="flex items-center justify-center gap-2 mb-1">
                 {isActive && <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />}
                 <span className={`text-sm font-semibold truncate ${isActive ? 'text-slate-100' : 'text-slate-500'}`}>
                   {cpuLevels[i] != null ? `${name} · niv. ${cpuLevels[i]}` : name}
                 </span>
               </div>
-              <div className={`text-5xl font-bold leading-none ${isActive ? 'text-slate-100' : 'text-slate-600'}`}>
+              <div className={`text-4xl font-bold leading-none ${isActive ? 'text-slate-100' : 'text-slate-600'}`}>
                 {done ? '✓' : targetLabel(targets[game.positions[i]])}
               </div>
-              <div className="text-xs text-slate-500 mt-3">
+              <div className="text-xs text-slate-500 mt-2">
                 <span className={`font-bold ${isActive ? 'text-slate-300' : 'text-slate-600'}`}>
                   {Math.min(game.positions[i], T)}
                 </span>{' '}
@@ -169,92 +180,62 @@ export function AroundTheClockScreen() {
         })}
       </div>
 
-      {/* Beurt-indicator */}
-      <div className="h-11 flex items-center justify-center border-b border-slate-800">
-        <div className="flex items-center gap-2">
-          <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
-          <span className="text-xs text-blue-400 font-semibold uppercase tracking-widest">
-            {activeIsCpu ? 'Computer gooit…' : `${players[active]} aan de beurt`}
-          </span>
+      {/* Mik op + stippen */}
+      <div className="flex flex-col items-center gap-2 py-3 border-b border-slate-800">
+        <span className="text-xs text-slate-500 uppercase tracking-widest">
+          {activeIsCpu
+            ? 'Computer gooit…'
+            : currentTarget != null
+            ? `Mik op${ringWord ? ` ${ringWord}` : ''}`
+            : ''}
+        </span>
+        <div className={`font-bold text-emerald-400 leading-none ${isBull ? 'text-4xl' : 'text-6xl'}`}>
+          {currentTarget != null ? targetLabel(currentTarget) : ''}
+          {showProgress && currentTarget != null && (
+            <span className="text-2xl text-slate-500 font-medium ml-2">
+              {game.progress[active]}/{game.hitsRequired}
+            </span>
+          )}
         </div>
+        <Dots darts={game.turnDarts} />
       </div>
 
-      {/* Invoer */}
-      <div className="mt-auto flex flex-col gap-4 p-4">
-        {/* Mik op + stippen */}
-        <div className="flex flex-col items-center gap-3">
-          {!activeIsCpu && currentTarget != null && (
-            <div className="text-center">
-              <span className="text-sm text-slate-500 uppercase tracking-widest">
-                Mik op{ringWord ? ` ${ringWord}` : ''}
-              </span>
-              <div className={`font-bold text-emerald-400 leading-none mt-1 ${isBull ? 'text-5xl' : 'text-7xl'}`}>
-                {targetLabel(currentTarget)}
-                {showProgress && (
-                  <span className="text-2xl text-slate-500 font-medium ml-2">
-                    {game.progress[active]}/{game.hitsRequired}
-                  </span>
-                )}
-              </div>
-            </div>
-          )}
-          <Dots darts={game.turnDarts} />
-        </div>
-
-        {/* Knoppen (verborgen tijdens CPU-beurt of na 3 pijlen) */}
-        {!turnDone && (
-          <div className={activeIsCpu ? 'opacity-40 pointer-events-none' : ''}>
-            {needSegment ? (
-              <div className="flex flex-col gap-2">
-                <div className="grid grid-cols-3 gap-2">
-                  {(['single', 'double', 'triple'] as DartOutcome[]).map(o => (
-                    <button
-                      key={o}
-                      onClick={() => game.dart(o)}
-                      className="h-20 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white text-base font-bold shadow-lg shadow-emerald-900/30 transition-colors"
-                    >
-                      {o === 'single' ? 'Single' : o === 'double' ? 'Double' : 'Triple'}
-                    </button>
-                  ))}
-                </div>
-                <button
-                  onClick={() => game.dart('miss')}
-                  className="w-full h-16 rounded-xl bg-red-600 hover:bg-red-500 active:bg-red-700 text-white text-lg font-bold transition-colors"
-                >
-                  Mis
-                </button>
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 gap-3 max-w-md mx-auto">
-                <button
-                  onClick={() => game.dart('miss')}
-                  className="aspect-square rounded-2xl bg-red-600 hover:bg-red-500 active:bg-red-700 text-white text-2xl font-bold shadow-lg shadow-red-900/30 transition-colors"
-                >
-                  Mis
-                </button>
-                <button
-                  onClick={() => game.dart(raakOutcome)}
-                  className="aspect-square rounded-2xl bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white text-2xl font-bold shadow-lg shadow-emerald-900/30 transition-colors"
-                >
-                  Raak
-                </button>
-              </div>
-            )}
+      {/* Knoppen — vullen de resterende ruimte */}
+      <div className={`flex-1 p-3 ${inputDisabled ? 'opacity-40 pointer-events-none' : ''}`}>
+        {needSegment ? (
+          <div className="grid grid-cols-2 grid-rows-2 gap-3 h-full">
+            {(['single', 'double', 'triple'] as DartOutcome[]).map(o => (
+              <button
+                key={o}
+                onClick={() => game.dart(o)}
+                className="rounded-2xl bg-emerald-600 active:bg-emerald-700 text-white text-2xl font-bold shadow-lg shadow-emerald-900/30 transition-colors"
+              >
+                {o === 'single' ? 'Single' : o === 'double' ? 'Double' : 'Triple'}
+              </button>
+            ))}
+            <button
+              onClick={() => game.dart('miss')}
+              className="rounded-2xl bg-red-600 active:bg-red-700 text-white text-2xl font-bold shadow-lg shadow-red-900/30 transition-colors"
+            >
+              Mis
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-3 h-full">
+            <button
+              onClick={() => game.dart('miss')}
+              className="rounded-2xl bg-red-600 active:bg-red-700 text-white text-3xl font-bold shadow-lg shadow-red-900/30 transition-colors"
+            >
+              Mis
+            </button>
+            <button
+              onClick={() => game.dart(raakOutcome)}
+              className="rounded-2xl bg-emerald-600 active:bg-emerald-700 text-white text-3xl font-bold shadow-lg shadow-emerald-900/30 transition-colors"
+            >
+              Raak
+            </button>
           </div>
         )}
-
-        <button
-          onClick={() => game.undo()}
-          disabled={!canUndo}
-          className={`h-11 rounded-xl border text-sm font-semibold transition-colors flex items-center justify-center gap-1.5 ${
-            canUndo
-              ? 'bg-slate-800 hover:bg-slate-700 active:bg-slate-600 border-slate-700 text-slate-300'
-              : 'bg-slate-800/50 border-slate-800 text-slate-700 cursor-not-allowed'
-          }`}
-        >
-          <span className="text-base">↩</span>
-          <span>Undo</span>
-        </button>
       </div>
     </div>
   )
