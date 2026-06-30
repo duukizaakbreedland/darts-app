@@ -1,11 +1,47 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { PlayerSelect, type Slot } from '../components/PlayerSelect'
+import type { AtcHitMode } from '../hooks/useAroundTheClock'
+
+type Order = 'desc' | 'asc' | 'random'
+type End = 'none' | 'bull' | 'bullseye'
+
+function Segmented<T extends string | number | boolean>({
+  label, options, value, onChange,
+}: {
+  label: string
+  options: { label: string; value: T }[]
+  value: T
+  onChange: (v: T) => void
+}) {
+  return (
+    <div className="flex flex-col gap-3">
+      <span className="text-xs text-slate-600 uppercase tracking-widest font-medium">{label}</span>
+      <div className="flex gap-1 bg-slate-800 border border-slate-700 rounded-xl p-1">
+        {options.map(o => (
+          <button
+            key={String(o.value)}
+            onClick={() => onChange(o.value)}
+            className={`flex-1 h-10 rounded-lg text-sm font-semibold transition-colors ${
+              value === o.value ? 'bg-blue-600 text-white' : 'text-slate-400 active:text-slate-200'
+            }`}
+          >
+            {o.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
 
 export function AtcSetupScreen() {
   const navigate = useNavigate()
   const [participants, setParticipants] = useState<Slot[]>([])
-  const [endOnBull, setEndOnBull] = useState(false)
+  const [order, setOrder] = useState<Order>('asc')
+  const [hitMode, setHitMode] = useState<AtcHitMode>('all')
+  const [hitsRequired, setHitsRequired] = useState(1)
+  const [increaseBySegment, setIncreaseBySegment] = useState(false)
+  const [end, setEnd] = useState<End>('none')
 
   const canStart = participants.length >= 2
 
@@ -15,7 +51,11 @@ export function AtcSetupScreen() {
       state: {
         players: participants.map(s => s.name),
         cpuLevels: participants.map(s => s.cpuLevel),
-        endOnBull,
+        order,
+        hitMode,
+        hitsRequired,
+        increaseBySegment,
+        end,
       },
     })
   }
@@ -38,29 +78,65 @@ export function AtcSetupScreen() {
 
       <PlayerSelect onChange={setParticipants} />
 
-      {/* Eindigen op */}
-      <div className="flex flex-col gap-3">
-        <span className="text-xs text-slate-600 uppercase tracking-widest font-medium">Eindigen op</span>
-        <div className="grid grid-cols-2 gap-1 bg-slate-800 border border-slate-700 rounded-xl p-1">
-          {[
-            { label: '20', bull: false },
-            { label: 'Bull', bull: true },
-          ].map(o => (
-            <button
-              key={o.label}
-              onClick={() => setEndOnBull(o.bull)}
-              className={`h-10 rounded-lg text-sm font-semibold transition-colors ${
-                endOnBull === o.bull ? 'bg-blue-600 text-white' : 'text-slate-400 active:text-slate-200'
-              }`}
-            >
-              {o.label}
-            </button>
-          ))}
-        </div>
-      </div>
+      <Segmented<Order>
+        label="Volgorde"
+        value={order}
+        onChange={setOrder}
+        options={[
+          { label: '20 → 1', value: 'desc' },
+          { label: '1 → 20', value: 'asc' },
+          { label: 'Willekeurig', value: 'random' },
+        ]}
+      />
+
+      <Segmented<AtcHitMode>
+        label="Mikken op"
+        value={hitMode}
+        onChange={setHitMode}
+        options={[
+          { label: 'Alles', value: 'all' },
+          { label: 'Single', value: 'single' },
+          { label: 'Double', value: 'double' },
+          { label: 'Triple', value: 'triple' },
+        ]}
+      />
+
+      <Segmented<boolean>
+        label="Increase by segment"
+        value={increaseBySegment}
+        onChange={setIncreaseBySegment}
+        options={[
+          { label: 'Uit', value: false },
+          { label: 'Aan', value: true },
+        ]}
+      />
+
+      {!increaseBySegment && (
+        <Segmented<number>
+          label="Aantal keer raken"
+          value={hitsRequired}
+          onChange={setHitsRequired}
+          options={[
+            { label: '1×', value: 1 },
+            { label: '2×', value: 2 },
+            { label: '3×', value: 3 },
+          ]}
+        />
+      )}
+
+      <Segmented<End>
+        label="Eindigen op"
+        value={end}
+        onChange={setEnd}
+        options={[
+          { label: '20', value: 'none' },
+          { label: 'Bull', value: 'bull' },
+          { label: 'Bullseye', value: 'bullseye' },
+        ]}
+      />
 
       {/* Starten */}
-      <div className="mt-auto">
+      <div className="mt-auto pt-2">
         <button
           onClick={handleStart}
           disabled={!canStart}

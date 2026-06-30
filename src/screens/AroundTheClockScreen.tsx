@@ -1,15 +1,46 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { useAroundTheClock } from '../hooks/useAroundTheClock'
-import { cpuAtcHit } from '../lib/cpuGames'
+import {
+  useAroundTheClock,
+  isBullTarget,
+  type AtcHitMode,
+  type DartOutcome,
+} from '../hooks/useAroundTheClock'
+import { cpuAtcDart } from '../lib/cpuGames'
+
+type Order = 'desc' | 'asc' | 'random'
+type End = 'none' | 'bull' | 'bullseye'
 
 interface NavState {
   players: string[]
   cpuLevels?: (number | null)[]
-  endOnBull?: boolean
+  order?: Order
+  hitMode?: AtcHitMode
+  hitsRequired?: number
+  increaseBySegment?: boolean
+  end?: End
 }
 
-const targetLabel = (n: number) => (n === 25 ? 'Bull' : String(n))
+const targetLabel = (n: number) => (n === 25 ? 'Bull' : n === 50 ? 'Bullseye' : String(n))
+
+function ringPrefix(hitMode: AtcHitMode): string {
+  return hitMode === 'single' ? 'Single ' : hitMode === 'double' ? 'Double ' : hitMode === 'triple' ? 'Triple ' : ''
+}
+
+function buildTargets(order: Order, end: End): number[] {
+  const nums = Array.from({ length: 20 }, (_, i) => i + 1)
+  let ordered: number[]
+  if (order === 'desc') ordered = nums.slice().reverse()
+  else if (order === 'random') {
+    ordered = nums.slice()
+    for (let i = ordered.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1))
+      ;[ordered[i], ordered[j]] = [ordered[j], ordered[i]]
+    }
+  } else ordered = nums
+  const endArr = end === 'bull' ? [25] : end === 'bullseye' ? [50] : []
+  return [...ordered, ...endArr]
+}
 
 function Dots({ darts }: { darts: boolean[] }) {
   return (
@@ -20,9 +51,7 @@ function Dots({ darts }: { darts: boolean[] }) {
         return (
           <span
             key={i}
-            className={`w-3 h-3 rounded-full ${
-              !thrown ? 'bg-slate-700' : hit ? 'bg-emerald-500' : 'bg-red-500/70'
-            }`}
+            className={`w-3 h-3 rounded-full ${!thrown ? 'bg-slate-700' : hit ? 'bg-emerald-500' : 'bg-red-500/70'}`}
           />
         )
       })}
@@ -36,18 +65,27 @@ export function AroundTheClockScreen() {
   const nav = (location.state as NavState) ?? { players: ['Speler 1', 'Speler 2'] }
   const players = nav.players
   const cpuLevels = nav.cpuLevels ?? players.map(() => null)
+  const hitMode = nav.hitMode ?? 'all'
 
-  const targets = useMemo(() => {
-    const base = Array.from({ length: 20 }, (_, i) => i + 1)
-    return nav.endOnBull ? [...base, 25] : base
-  }, [nav.endOnBull])
+  const [targets] = useState(() => buildTargets(nav.order ?? 'asc', nav.end ?? 'none'))
 
-  const game = useAroundTheClock({ players, targets })
+  const game = useAroundTheClock({
+    players,
+    targets,
+    hitMode,
+    hitsRequired: nav.hitsRequired ?? 1,
+    increaseBySegment: nav.increaseBySegment ?? false,
+  })
+
   const active = game.activePlayer
   const activeIsCpu = cpuLevels[active] != null
   const T = targets.length
   const turnDone = game.turnDarts.length >= 3
   const currentTarget = targets[game.positions[active]]
+  const isBull = currentTarget != null && isBullTarget(currentTarget)
+  const needSegment = game.increaseBySegment && !isBull
+  const raakOutcome: DartOutcome = isBull || hitMode === 'all' ? 'single' : hitMode
+  const showProgress = game.hitsRequired > 1 && !game.increaseBySegment
 
   // Naar game-over bij winnaar
   useEffect(() => {
@@ -66,7 +104,10 @@ export function AroundTheClockScreen() {
     if (game.turnDarts.length < 3) {
       const target = targets[game.positions[active]]
       const delay = game.turnDarts.length === 0 ? 1000 : 550
-      const id = setTimeout(() => game.dart(cpuAtcHit(target, level)), delay)
+      const id = setTimeout(
+        () => game.dart(cpuAtcDart(target, hitMode, game.increaseBySegment, level)),
+        delay
+      )
       return () => clearTimeout(id)
     }
     const id = setTimeout(() => game.pass(), 700)
@@ -114,9 +155,9 @@ export function AroundTheClockScreen() {
               </div>
               <div className="text-xs text-slate-500 mt-3">
                 <span className={`font-bold ${isActive ? 'text-slate-300' : 'text-slate-600'}`}>
-                  {game.positions[i]}
+                  {Math.min(game.positions[i], T)}
                 </span>{' '}
-                / {T} geraakt
+                / {T}
               </div>
             </div>
           )
@@ -136,38 +177,66 @@ export function AroundTheClockScreen() {
       {/* Invoer */}
       <div className="mt-auto flex flex-col gap-3 p-4">
         <div className="flex flex-col items-center gap-3">
-          {!turnDone && !activeIsCpu && (
+          {!turnDone && !activeIsCpu && currentTarget != null && (
             <div className="text-center">
               <span className="text-xs text-slate-500 uppercase tracking-widest">Mik op</span>
-              <div className="text-3xl font-bold text-emerald-400">{targetLabel(currentTarget)}</div>
+              <div className="text-3xl font-bold text-emerald-400">
+                {ringPrefix(isBull ? 'all' : hitMode)}
+                {targetLabel(currentTarget)}
+                {showProgress && (
+                  <span className="text-base text-slate-500 font-medium ml-2">
+                    {game.progress[active]}/{game.hitsRequired}
+                  </span>
+                )}
+              </div>
             </div>
           )}
           <Dots darts={game.turnDarts} />
         </div>
 
         <div className={activeIsCpu ? 'opacity-40 pointer-events-none' : ''}>
-          {!turnDone ? (
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                onClick={() => game.dart(true)}
-                className="h-16 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white text-xl font-bold shadow-lg shadow-emerald-900/30 transition-colors"
-              >
-                Raak
-              </button>
-              <button
-                onClick={() => game.dart(false)}
-                className="h-16 rounded-xl bg-slate-800 border border-slate-700 text-slate-300 text-xl font-bold active:bg-slate-700 transition-colors"
-              >
-                Mis
-              </button>
-            </div>
-          ) : (
+          {turnDone ? (
             <button
               onClick={() => game.pass()}
               className="w-full h-16 rounded-xl bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white text-xl font-bold shadow-lg shadow-blue-900/40 transition-colors"
             >
               Volgende speler →
             </button>
+          ) : needSegment ? (
+            <div className="flex flex-col gap-2">
+              <div className="grid grid-cols-3 gap-2">
+                {(['single', 'double', 'triple'] as DartOutcome[]).map(o => (
+                  <button
+                    key={o}
+                    onClick={() => game.dart(o)}
+                    className="h-16 rounded-xl bg-emerald-900/30 border border-emerald-700/40 text-emerald-200 text-base font-bold active:bg-emerald-800/40 transition-colors"
+                  >
+                    {o === 'single' ? 'Single' : o === 'double' ? 'Double' : 'Triple'}
+                  </button>
+                ))}
+              </div>
+              <button
+                onClick={() => game.dart('miss')}
+                className="w-full h-14 rounded-xl bg-red-600 hover:bg-red-500 active:bg-red-700 text-white text-lg font-bold transition-colors"
+              >
+                Mis
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => game.dart('miss')}
+                className="h-16 rounded-xl bg-red-600 hover:bg-red-500 active:bg-red-700 text-white text-xl font-bold shadow-lg shadow-red-900/30 transition-colors"
+              >
+                Mis
+              </button>
+              <button
+                onClick={() => game.dart(raakOutcome)}
+                className="h-16 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white text-xl font-bold shadow-lg shadow-emerald-900/30 transition-colors"
+              >
+                Raak
+              </button>
+            </div>
           )}
         </div>
 
