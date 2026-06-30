@@ -82,7 +82,12 @@ export function NewGameScreen() {
 
   useEffect(() => {
     fetchPlayers()
-      .then(setProfiles)
+      .then(list => {
+        setProfiles(list)
+        // Mezelf (Duuk) standaard voorselecteren
+        const me = list.find(p => p.name.trim().toLowerCase() === 'duuk')
+        if (me) setSelected([me])
+      })
       .catch(() => setError('Kon profielen niet laden. Controleer je internetverbinding.'))
       .finally(() => setLoading(false))
   }, [])
