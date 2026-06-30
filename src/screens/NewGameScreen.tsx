@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   DndContext,
@@ -17,41 +17,23 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import { restrictToVerticalAxis, restrictToParentElement } from '@dnd-kit/modifiers'
 import { OnScreenKeyboard } from '../components/OnScreenKeyboard'
+import { fetchPlayers, createPlayer, isDuplicateError } from '../lib/players'
+import type { Player } from '../types/database'
 
 const STARTING_SCORES = [301, 501, 701]
-const RECENT_KEY = 'darts.recentPlayers'
-
-let idCounter = 0
-const uid = () => `p${idCounter++}`
-
-type PlayerSlot = { id: string; name: string }
-
-function loadRecent(): string[] {
-  try {
-    const raw = localStorage.getItem(RECENT_KEY)
-    return raw ? (JSON.parse(raw) as string[]) : []
-  } catch {
-    return []
-  }
-}
+const MAX_PLAYERS = 4
 
 type RowProps = {
-  player: PlayerSlot
+  player: Player
   index: number
-  total: number
-  isActive: boolean
-  onEdit: () => void
   onRemove: () => void
 }
 
-function SortablePlayerRow({ player, index, total, isActive, onEdit, onRemove }: RowProps) {
+function SortablePlayerRow({ player, index, onRemove }: RowProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: player.id,
   })
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  }
+  const style = { transform: CSS.Transform.toString(transform), transition }
 
   return (
     <div
@@ -59,7 +41,6 @@ function SortablePlayerRow({ player, index, total, isActive, onEdit, onRemove }:
       style={style}
       className={`flex items-center gap-2 ${isDragging ? 'relative z-10 opacity-80' : ''}`}
     >
-      {/* Sleep-handvat */}
       <button
         {...attributes}
         {...listeners}
@@ -68,31 +49,18 @@ function SortablePlayerRow({ player, index, total, isActive, onEdit, onRemove }:
       >
         ⠿
       </button>
-
-      {/* Volgordenummer */}
       <div className="w-7 h-7 rounded-full bg-slate-700 flex items-center justify-center text-xs font-bold text-slate-400 flex-shrink-0">
         {index + 1}
       </div>
-
-      {/* Naam */}
+      <div className="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-4 h-12 flex items-center text-slate-100">
+        {player.name}
+      </div>
       <button
-        onClick={onEdit}
-        className={`flex-1 text-left bg-slate-800 border rounded-xl px-4 h-12 transition-colors ${
-          isActive ? 'border-blue-500' : 'border-slate-700'
-        } ${player.name ? 'text-slate-100' : 'text-slate-600'}`}
+        onClick={onRemove}
+        className="w-10 h-10 rounded-xl bg-slate-800 border border-slate-700 text-slate-500 flex items-center justify-center active:bg-slate-700"
       >
-        {player.name || `Speler ${index + 1}`}
+        ✕
       </button>
-
-      {/* Verwijderen */}
-      {total > 1 && (
-        <button
-          onClick={onRemove}
-          className="w-10 h-10 rounded-xl bg-slate-800 border border-slate-700 text-slate-500 flex items-center justify-center active:bg-slate-700"
-        >
-          ✕
-        </button>
-      )}
     </div>
   )
 }
@@ -102,21 +70,38 @@ export function NewGameScreen() {
   const [startingScore, setStartingScore] = useState(501)
   const [legs, setLegs] = useState(3)
   const [sets, setSets] = useState(1)
-  const [players, setPlayers] = useState<PlayerSlot[]>([
-    { id: uid(), name: 'Duuk' },
-    { id: uid(), name: '' },
-  ])
-  const [activeId, setActiveId] = useState<string | null>(null)
-  const [recent] = useState<string[]>(loadRecent)
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
-  )
+  const [profiles, setProfiles] = useState<Player[]>([])
+  const [selected, setSelected] = useState<Player[]>([])
+  const [loading, setLoading] = useState(true)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [creating, setCreating] = useState(false)
+
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }))
+
+  useEffect(() => {
+    fetchPlayers()
+      .then(setProfiles)
+      .catch(() => setError('Kon profielen niet laden. Controleer je internetverbinding.'))
+      .finally(() => setLoading(false))
+  }, [])
+
+  const available = profiles.filter(p => !selected.some(s => s.id === p.id))
+
+  const addProfile = (p: Player) => {
+    if (selected.length >= MAX_PLAYERS) return
+    setSelected([...selected, p])
+  }
+
+  const removeSelected = (id: string) => {
+    setSelected(selected.filter(p => p.id !== id))
+  }
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event
     if (over && active.id !== over.id) {
-      setPlayers(prev => {
+      setSelected(prev => {
         const oldIndex = prev.findIndex(p => p.id === active.id)
         const newIndex = prev.findIndex(p => p.id === over.id)
         return arrayMove(prev, oldIndex, newIndex)
@@ -124,53 +109,45 @@ export function NewGameScreen() {
     }
   }
 
-  const addPlayer = () => {
-    if (players.length >= 4) return
-    const slot = { id: uid(), name: '' }
-    setPlayers([...players, slot])
-    setActiveId(slot.id) // toetsenbord meteen openen voor de nieuwe speler
+  const handleCreateProfile = async (value: string) => {
+    setCreating(false)
+    const name = value.trim()
+    if (!name) return
+    setBusy(true)
+    setError(null)
+    try {
+      const player = await createPlayer(name)
+      setProfiles(prev => [...prev, player].sort((a, b) => a.name.localeCompare(b.name)))
+      setSelected(prev => (prev.length < MAX_PLAYERS ? [...prev, player] : prev))
+    } catch (e) {
+      setError(
+        isDuplicateError(e)
+          ? `Er bestaat al een profiel met de naam "${name}".`
+          : 'Profiel aanmaken mislukt. Probeer het opnieuw.'
+      )
+    } finally {
+      setBusy(false)
+    }
   }
 
-  const updateName = (id: string, name: string) => {
-    setPlayers(prev => prev.map(p => (p.id === id ? { ...p, name } : p)))
-  }
-
-  const removePlayer = (id: string) => {
-    setPlayers(prev => prev.filter(p => p.id !== id))
-  }
-
-  const fillFromRecent = (name: string) => {
-    if (players.some(p => p.name.trim().toLowerCase() === name.toLowerCase())) return
-    const empty = players.find(p => !p.name.trim())
-    if (empty) updateName(empty.id, name)
-    else if (players.length < 4) setPlayers([...players, { id: uid(), name }])
-  }
-
-  const availableRecent = recent.filter(
-    r => !players.some(p => p.name.trim().toLowerCase() === r.toLowerCase())
-  )
-
-  const canStart = players.filter(p => p.name.trim()).length >= 2
+  const canStart = selected.length >= 2
 
   const handleStart = () => {
-    const validPlayers = players.map(p => p.name.trim()).filter(Boolean)
-    const merged = [
-      ...validPlayers,
-      ...recent.filter(r => !validPlayers.some(n => n.toLowerCase() === r.toLowerCase())),
-    ].slice(0, 8)
-    try {
-      localStorage.setItem(RECENT_KEY, JSON.stringify(merged))
-    } catch {
-      /* opslag niet beschikbaar — niet erg */
-    }
-    navigate('/game', { state: { startingScore, legs, sets, players: validPlayers } })
+    if (!canStart) return
+    navigate('/game', {
+      state: {
+        startingScore,
+        legs,
+        sets,
+        players: selected.map(p => p.name),
+        playerIds: selected.map(p => p.id),
+      },
+    })
   }
-
-  const activeIndex = activeId ? players.findIndex(p => p.id === activeId) : -1
 
   return (
     <div className="flex flex-col min-h-svh bg-slate-900 px-5 pb-5 gap-6 pt-[calc(env(safe-area-inset-top)_+_0.5rem)]">
-      {/* Header: terug + gecentreerde titel */}
+      {/* Header */}
       <div className="relative flex items-center h-11">
         <button
           onClick={() => navigate('/')}
@@ -184,58 +161,74 @@ export function NewGameScreen() {
         </h1>
       </div>
 
-      {/* Spelers — bovenaan, sleepbaar */}
+      {error && (
+        <div className="bg-red-900/20 border border-red-800/40 text-red-300 text-sm rounded-xl px-4 py-3">
+          {error}
+        </div>
+      )}
+
+      {/* Spelers */}
       <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
           <span className="text-xs text-slate-600 uppercase tracking-widest font-medium">Spelers</span>
-          <span className="text-[11px] text-slate-600">⠿ sleep · nr. 1 begint</span>
+          {selected.length > 1 && <span className="text-[11px] text-slate-600">⠿ sleep · nr. 1 begint</span>}
         </div>
 
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragEnd={handleDragEnd}
-          modifiers={[restrictToVerticalAxis, restrictToParentElement]}
-        >
-          <SortableContext items={players.map(p => p.id)} strategy={verticalListSortingStrategy}>
-            <div className="flex flex-col gap-2">
-              {players.map((player, i) => (
-                <SortablePlayerRow
-                  key={player.id}
-                  player={player}
-                  index={i}
-                  total={players.length}
-                  isActive={activeId === player.id}
-                  onEdit={() => setActiveId(player.id)}
-                  onRemove={() => removePlayer(player.id)}
-                />
-              ))}
-            </div>
-          </SortableContext>
-        </DndContext>
-
-        {players.length < 4 && (
-          <button
-            onClick={addPlayer}
-            className="h-12 rounded-xl border border-dashed border-slate-700 text-slate-600 text-sm hover:border-slate-500 hover:text-slate-400 transition-colors"
+        {/* Geselecteerde spelers (sleepbaar) */}
+        {selected.length > 0 && (
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+            modifiers={[restrictToVerticalAxis, restrictToParentElement]}
           >
-            + Speler toevoegen
-          </button>
+            <SortableContext items={selected.map(p => p.id)} strategy={verticalListSortingStrategy}>
+              <div className="flex flex-col gap-2">
+                {selected.map((player, i) => (
+                  <SortablePlayerRow
+                    key={player.id}
+                    player={player}
+                    index={i}
+                    onRemove={() => removeSelected(player.id)}
+                  />
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
         )}
 
-        {/* Recente spelers — snelkeuze */}
-        {availableRecent.length > 0 && (
-          <div className="flex flex-wrap gap-2 pt-1">
-            {availableRecent.map(name => (
-              <button
-                key={name}
-                onClick={() => fillFromRecent(name)}
-                className="h-8 px-3 rounded-full bg-slate-800 border border-slate-700 text-slate-300 text-sm active:bg-slate-700 transition-colors"
-              >
-                + {name}
-              </button>
-            ))}
-          </div>
+        {/* Kies uit profielen */}
+        {loading ? (
+          <p className="text-slate-500 text-sm py-2">Profielen laden…</p>
+        ) : (
+          <>
+            {selected.length === 0 && available.length > 0 && (
+              <p className="text-slate-500 text-sm">Kies minimaal twee spelers:</p>
+            )}
+            {selected.length < MAX_PLAYERS && (
+              <div className="flex flex-wrap gap-2">
+                {available.map(p => (
+                  <button
+                    key={p.id}
+                    onClick={() => addProfile(p)}
+                    className="h-10 px-4 rounded-full bg-slate-800 border border-slate-700 text-slate-200 text-sm font-medium active:bg-slate-700 transition-colors"
+                  >
+                    + {p.name}
+                  </button>
+                ))}
+                <button
+                  onClick={() => setCreating(true)}
+                  disabled={busy}
+                  className="h-10 px-4 rounded-full border border-dashed border-slate-600 text-slate-400 text-sm active:bg-slate-800 transition-colors"
+                >
+                  + Nieuw profiel
+                </button>
+              </div>
+            )}
+            {selected.length >= MAX_PLAYERS && (
+              <span className="text-xs text-slate-600">Maximaal {MAX_PLAYERS} spelers.</span>
+            )}
+          </>
         )}
       </div>
 
@@ -301,14 +294,11 @@ export function NewGameScreen() {
         </button>
       </div>
 
-      {activeId !== null && activeIndex >= 0 && (
+      {creating && (
         <OnScreenKeyboard
-          label={`Speler ${activeIndex + 1}`}
-          initialValue={players[activeIndex].name}
-          onClose={value => {
-            updateName(activeId, value)
-            setActiveId(null)
-          }}
+          label="Nieuw profiel"
+          initialValue=""
+          onClose={handleCreateProfile}
         />
       )}
     </div>
