@@ -22,6 +22,20 @@ import type { Player } from '../types/database'
 
 const STARTING_SCORES = [301, 501, 701]
 const MAX_PLAYERS = 4
+const PROFILES_CACHE = 'darts.profilesCache'
+
+function loadCachedProfiles(): Player[] {
+  try {
+    const raw = localStorage.getItem(PROFILES_CACHE)
+    return raw ? (JSON.parse(raw) as Player[]) : []
+  } catch {
+    return []
+  }
+}
+
+function findMe(list: Player[]): Player | undefined {
+  return list.find(p => p.name.trim().toLowerCase() === 'duuk')
+}
 
 type RowProps = {
   player: Player
@@ -71,9 +85,13 @@ export function NewGameScreen() {
   const [legs, setLegs] = useState(3)
   const [sets, setSets] = useState(1)
 
-  const [profiles, setProfiles] = useState<Player[]>([])
-  const [selected, setSelected] = useState<Player[]>([])
-  const [loading, setLoading] = useState(true)
+  // Init uit lokale cache, zodat het scherm meteen mét Duuk geselecteerd verschijnt
+  const [profiles, setProfiles] = useState<Player[]>(() => loadCachedProfiles())
+  const [selected, setSelected] = useState<Player[]>(() => {
+    const me = findMe(loadCachedProfiles())
+    return me ? [me] : []
+  })
+  const [loading, setLoading] = useState(() => loadCachedProfiles().length === 0)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
@@ -84,9 +102,13 @@ export function NewGameScreen() {
     fetchPlayers()
       .then(list => {
         setProfiles(list)
-        // Mezelf (Duuk) standaard voorselecteren
-        const me = list.find(p => p.name.trim().toLowerCase() === 'duuk')
-        if (me) setSelected([me])
+        localStorage.setItem(PROFILES_CACHE, JSON.stringify(list))
+        // Alleen bij eerste gebruik (lege selectie) Duuk alsnog voorselecteren
+        setSelected(prev => {
+          if (prev.length > 0) return prev
+          const me = findMe(list)
+          return me ? [me] : prev
+        })
       })
       .catch(() => setError('Kon profielen niet laden. Controleer je internetverbinding.'))
       .finally(() => setLoading(false))
@@ -122,7 +144,11 @@ export function NewGameScreen() {
     setError(null)
     try {
       const player = await createPlayer(name)
-      setProfiles(prev => [...prev, player].sort((a, b) => a.name.localeCompare(b.name)))
+      setProfiles(prev => {
+        const next = [...prev, player].sort((a, b) => a.name.localeCompare(b.name))
+        localStorage.setItem(PROFILES_CACHE, JSON.stringify(next))
+        return next
+      })
       setSelected(prev => (prev.length < MAX_PLAYERS ? [...prev, player] : prev))
     } catch (e) {
       setError(
