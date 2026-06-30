@@ -83,8 +83,8 @@ export function AtcSetupScreen() {
         value={order}
         onChange={setOrder}
         options={[
-          { label: '20 → 1', value: 'desc' },
           { label: '1 → 20', value: 'asc' },
+          { label: '20 → 1', value: 'desc' },
           { label: 'Willekeurig', value: 'random' },
         ]}
       />
@@ -102,7 +102,7 @@ export function AtcSetupScreen() {
       />
 
       <Segmented<boolean>
-        label="Increase by segment"
+        label="Vooruit per segment"
         value={increaseBySegment}
         onChange={setIncreaseBySegment}
         options={[

@@ -23,8 +23,8 @@ interface NavState {
 
 const targetLabel = (n: number) => (n === 25 ? 'Bull' : n === 50 ? 'Bullseye' : String(n))
 
-function ringPrefix(hitMode: AtcHitMode): string {
-  return hitMode === 'single' ? 'Single ' : hitMode === 'double' ? 'Double ' : hitMode === 'triple' ? 'Triple ' : ''
+function ringWordFor(hitMode: AtcHitMode): string {
+  return hitMode === 'single' ? 'Single' : hitMode === 'double' ? 'Double' : hitMode === 'triple' ? 'Triple' : ''
 }
 
 function buildTargets(order: Order, end: End): number[] {
@@ -85,6 +85,7 @@ export function AroundTheClockScreen() {
   const isBull = currentTarget != null && isBullTarget(currentTarget)
   const needSegment = game.increaseBySegment && !isBull
   const raakOutcome: DartOutcome = isBull || hitMode === 'all' ? 'single' : hitMode
+  const ringWord = isBull ? '' : ringWordFor(hitMode)
   const showProgress = game.hitsRequired > 1 && !game.increaseBySegment
 
   // Naar game-over bij winnaar
@@ -96,24 +97,28 @@ export function AroundTheClockScreen() {
     }
   }, [game.winner])
 
-  // CPU speelt automatisch, dart voor dart
+  // CPU gooit automatisch, dart voor dart
   useEffect(() => {
     if (game.winner !== null) return
     const level = cpuLevels[active]
-    if (level == null) return
-    if (game.turnDarts.length < 3) {
-      const target = targets[game.positions[active]]
-      const delay = game.turnDarts.length === 0 ? 1000 : 550
-      const id = setTimeout(
-        () => game.dart(cpuAtcDart(target, hitMode, game.increaseBySegment, level)),
-        delay
-      )
-      return () => clearTimeout(id)
-    }
-    const id = setTimeout(() => game.pass(), 700)
+    if (level == null || game.turnDarts.length >= 3) return
+    const target = targets[game.positions[active]]
+    const delay = game.turnDarts.length === 0 ? 1000 : 550
+    const id = setTimeout(
+      () => game.dart(cpuAtcDart(target, hitMode, game.increaseBySegment, level)),
+      delay
+    )
     return () => clearTimeout(id)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active, game.turnDarts.length, game.winner])
+
+  // Na de 3e pijl automatisch door naar de volgende speler (mens én computer)
+  useEffect(() => {
+    if (game.winner !== null || game.turnDarts.length < 3) return
+    const id = setTimeout(() => game.pass(), 800)
+    return () => clearTimeout(id)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [game.turnDarts.length, game.winner])
 
   const canUndo = !activeIsCpu && game.turnDarts.length > 0
 
@@ -175,16 +180,18 @@ export function AroundTheClockScreen() {
       </div>
 
       {/* Invoer */}
-      <div className="mt-auto flex flex-col gap-3 p-4">
+      <div className="mt-auto flex flex-col gap-4 p-4">
+        {/* Mik op + stippen */}
         <div className="flex flex-col items-center gap-3">
-          {!turnDone && !activeIsCpu && currentTarget != null && (
+          {!activeIsCpu && currentTarget != null && (
             <div className="text-center">
-              <span className="text-xs text-slate-500 uppercase tracking-widest">Mik op</span>
-              <div className="text-3xl font-bold text-emerald-400">
-                {ringPrefix(isBull ? 'all' : hitMode)}
+              <span className="text-sm text-slate-500 uppercase tracking-widest">
+                Mik op{ringWord ? ` ${ringWord}` : ''}
+              </span>
+              <div className={`font-bold text-emerald-400 leading-none mt-1 ${isBull ? 'text-5xl' : 'text-7xl'}`}>
                 {targetLabel(currentTarget)}
                 {showProgress && (
-                  <span className="text-base text-slate-500 font-medium ml-2">
+                  <span className="text-2xl text-slate-500 font-medium ml-2">
                     {game.progress[active]}/{game.hitsRequired}
                   </span>
                 )}
@@ -194,51 +201,47 @@ export function AroundTheClockScreen() {
           <Dots darts={game.turnDarts} />
         </div>
 
-        <div className={activeIsCpu ? 'opacity-40 pointer-events-none' : ''}>
-          {turnDone ? (
-            <button
-              onClick={() => game.pass()}
-              className="w-full h-16 rounded-xl bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white text-xl font-bold shadow-lg shadow-blue-900/40 transition-colors"
-            >
-              Volgende speler →
-            </button>
-          ) : needSegment ? (
-            <div className="flex flex-col gap-2">
-              <div className="grid grid-cols-3 gap-2">
-                {(['single', 'double', 'triple'] as DartOutcome[]).map(o => (
-                  <button
-                    key={o}
-                    onClick={() => game.dart(o)}
-                    className="h-16 rounded-xl bg-emerald-900/30 border border-emerald-700/40 text-emerald-200 text-base font-bold active:bg-emerald-800/40 transition-colors"
-                  >
-                    {o === 'single' ? 'Single' : o === 'double' ? 'Double' : 'Triple'}
-                  </button>
-                ))}
+        {/* Knoppen (verborgen tijdens CPU-beurt of na 3 pijlen) */}
+        {!turnDone && (
+          <div className={activeIsCpu ? 'opacity-40 pointer-events-none' : ''}>
+            {needSegment ? (
+              <div className="flex flex-col gap-2">
+                <div className="grid grid-cols-3 gap-2">
+                  {(['single', 'double', 'triple'] as DartOutcome[]).map(o => (
+                    <button
+                      key={o}
+                      onClick={() => game.dart(o)}
+                      className="h-20 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white text-base font-bold shadow-lg shadow-emerald-900/30 transition-colors"
+                    >
+                      {o === 'single' ? 'Single' : o === 'double' ? 'Double' : 'Triple'}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  onClick={() => game.dart('miss')}
+                  className="w-full h-16 rounded-xl bg-red-600 hover:bg-red-500 active:bg-red-700 text-white text-lg font-bold transition-colors"
+                >
+                  Mis
+                </button>
               </div>
-              <button
-                onClick={() => game.dart('miss')}
-                className="w-full h-14 rounded-xl bg-red-600 hover:bg-red-500 active:bg-red-700 text-white text-lg font-bold transition-colors"
-              >
-                Mis
-              </button>
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                onClick={() => game.dart('miss')}
-                className="h-16 rounded-xl bg-red-600 hover:bg-red-500 active:bg-red-700 text-white text-xl font-bold shadow-lg shadow-red-900/30 transition-colors"
-              >
-                Mis
-              </button>
-              <button
-                onClick={() => game.dart(raakOutcome)}
-                className="h-16 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white text-xl font-bold shadow-lg shadow-emerald-900/30 transition-colors"
-              >
-                Raak
-              </button>
-            </div>
-          )}
-        </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-3 max-w-md mx-auto">
+                <button
+                  onClick={() => game.dart('miss')}
+                  className="aspect-square rounded-2xl bg-red-600 hover:bg-red-500 active:bg-red-700 text-white text-2xl font-bold shadow-lg shadow-red-900/30 transition-colors"
+                >
+                  Mis
+                </button>
+                <button
+                  onClick={() => game.dart(raakOutcome)}
+                  className="aspect-square rounded-2xl bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white text-2xl font-bold shadow-lg shadow-emerald-900/30 transition-colors"
+                >
+                  Raak
+                </button>
+              </div>
+            )}
+          </div>
+        )}
 
         <button
           onClick={() => game.undo()}
