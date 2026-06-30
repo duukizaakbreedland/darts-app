@@ -165,27 +165,27 @@ export function GameScreen() {
         })}
       </div>
 
-      {/* Beurt-indicator */}
-      <div className="h-12 flex items-center justify-center border-b border-slate-800">
-        <div className="flex items-center gap-2">
-          <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
-          <span className="text-xs text-blue-400 font-semibold uppercase tracking-widest">
-            {activeIsCpu ? 'Computer gooit…' : `${players[active]} aan de beurt`}
-          </span>
+      {/* Keypad (met alleen een 'Computer gooit…'-hint tijdens de CPU-beurt) */}
+      <div className="mt-auto">
+        {activeIsCpu && (
+          <div className="flex items-center justify-center gap-2 py-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
+            <span className="text-xs text-blue-400 font-semibold uppercase tracking-widest">
+              Computer gooit…
+            </span>
+          </div>
+        )}
+        <div className={`transition-opacity ${activeIsCpu ? 'opacity-40 pointer-events-none' : ''}`}>
+          <Keypad
+            value={inputValue}
+            onChange={setInputValue}
+            onConfirm={handleKeypadConfirm}
+            onNoScore={() => handleSubmit(0)}
+            onUndo={handleUndo}
+            canUndo={game.canUndo}
+            isBust={bustFlash}
+          />
         </div>
-      </div>
-
-      {/* Keypad */}
-      <div className={`mt-auto transition-opacity ${activeIsCpu ? 'opacity-40 pointer-events-none' : ''}`}>
-        <Keypad
-          value={inputValue}
-          onChange={setInputValue}
-          onConfirm={handleKeypadConfirm}
-          onNoScore={() => handleSubmit(0)}
-          onUndo={handleUndo}
-          canUndo={game.canUndo}
-          isBust={bustFlash}
-        />
       </div>
 
       {/* Modals */}
