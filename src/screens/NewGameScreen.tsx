@@ -24,8 +24,10 @@ import type { Player } from '../types/database'
 const STARTING_SCORES = [301, 501, 701]
 const MAX_PLAYERS = 4
 const PROFILES_CACHE = 'darts.profilesCache'
+const CPU_ID = 'cpu'
 
-type Mode = 'humans' | 'computer'
+// Deelnemer: profiel (cpuLevel = null) of de computer (cpuLevel = 1-10)
+type Slot = { id: string; name: string; cpuLevel: number | null }
 
 function loadCachedProfiles(): Player[] {
   try {
@@ -40,13 +42,14 @@ function findMe(list: Player[]): Player | undefined {
   return list.find(p => p.name.trim().toLowerCase() === 'duuk')
 }
 
-type RowProps = { player: Player; index: number; onRemove: () => void }
+type RowProps = { slot: Slot; index: number; onRemove: () => void }
 
-function SortablePlayerRow({ player, index, onRemove }: RowProps) {
+function SortablePlayerRow({ slot, index, onRemove }: RowProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id: player.id,
+    id: slot.id,
   })
   const style = { transform: CSS.Transform.toString(transform), transition }
+  const isCpu = slot.cpuLevel != null
 
   return (
     <div
@@ -65,8 +68,12 @@ function SortablePlayerRow({ player, index, onRemove }: RowProps) {
       <div className="w-7 h-7 rounded-full bg-slate-700 flex items-center justify-center text-xs font-bold text-slate-400 flex-shrink-0">
         {index + 1}
       </div>
-      <div className="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-4 h-12 flex items-center text-slate-100">
-        {player.name}
+      <div
+        className={`flex-1 border rounded-xl px-4 h-12 flex items-center ${
+          isCpu ? 'bg-blue-950/40 border-blue-800/50 text-blue-200' : 'bg-slate-800 border-slate-700 text-slate-100'
+        }`}
+      >
+        {slot.name}
       </div>
       <button
         onClick={onRemove}
@@ -81,24 +88,19 @@ function SortablePlayerRow({ player, index, onRemove }: RowProps) {
 export function NewGameScreen() {
   const navigate = useNavigate()
   const [startingScore, setStartingScore] = useState(501)
-  const [legs, setLegs] = useState(3)
+  const [legs, setLegs] = useState(1)
   const [sets, setSets] = useState(1)
-  const [mode, setMode] = useState<Mode>('humans')
 
-  // Init uit lokale cache zodat het scherm meteen met Duuk gevuld is
   const [profiles, setProfiles] = useState<Player[]>(() => loadCachedProfiles())
-  const [selected, setSelected] = useState<Player[]>(() => {
+  const [selected, setSelected] = useState<Slot[]>(() => {
     const me = findMe(loadCachedProfiles())
-    return me ? [me] : []
+    return me ? [{ id: me.id, name: me.name, cpuLevel: null }] : []
   })
-  const [you, setYou] = useState<Player | null>(() => findMe(loadCachedProfiles()) ?? null)
-  const [cpuLevel, setCpuLevel] = useState(5)
-  const [cpuStarts, setCpuStarts] = useState(false)
-
   const [loading, setLoading] = useState(() => loadCachedProfiles().length === 0)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
+  const [showPicker, setShowPicker] = useState(false)
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }))
 
@@ -107,22 +109,40 @@ export function NewGameScreen() {
       .then(list => {
         setProfiles(list)
         localStorage.setItem(PROFILES_CACHE, JSON.stringify(list))
-        const me = findMe(list)
-        setSelected(prev => (prev.length > 0 ? prev : me ? [me] : prev))
-        setYou(prev => prev ?? me ?? null)
+        setSelected(prev => {
+          if (prev.length > 0) return prev
+          const me = findMe(list)
+          return me ? [{ id: me.id, name: me.name, cpuLevel: null }] : prev
+        })
       })
       .catch(() => setError('Kon profielen niet laden. Controleer je internetverbinding.'))
       .finally(() => setLoading(false))
   }, [])
 
-  const available = profiles.filter(p => !selected.some(s => s.id === p.id))
+  const hasCpu = selected.some(s => s.cpuLevel != null)
+  const cpuLevel = selected.find(s => s.cpuLevel != null)?.cpuLevel ?? 1
+  const pickable = profiles.filter(p => !selected.some(s => s.id === p.id))
+
+  const addProfile = (p: Player) => {
+    setSelected(prev => [...prev, { id: p.id, name: p.name, cpuLevel: null }])
+    setShowPicker(false)
+  }
+  const addComputer = () => {
+    setSelected(prev => [...prev, { id: CPU_ID, name: 'Computer', cpuLevel: 1 }])
+    setShowPicker(false)
+  }
+  const setCpuLevel = (level: number) => {
+    const clamped = Math.min(CPU_LEVELS, Math.max(1, level))
+    setSelected(prev => prev.map(s => (s.cpuLevel != null ? { ...s, cpuLevel: clamped } : s)))
+  }
+  const removeSlot = (id: string) => setSelected(prev => prev.filter(s => s.id !== id))
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event
     if (over && active.id !== over.id) {
       setSelected(prev => {
-        const oldIndex = prev.findIndex(p => p.id === active.id)
-        const newIndex = prev.findIndex(p => p.id === over.id)
+        const oldIndex = prev.findIndex(s => s.id === active.id)
+        const newIndex = prev.findIndex(s => s.id === over.id)
         return arrayMove(prev, oldIndex, newIndex)
       })
     }
@@ -141,11 +161,9 @@ export function NewGameScreen() {
         localStorage.setItem(PROFILES_CACHE, JSON.stringify(next))
         return next
       })
-      if (mode === 'humans') {
-        setSelected(prev => (prev.length < MAX_PLAYERS ? [...prev, player] : prev))
-      } else {
-        setYou(player)
-      }
+      setSelected(prev =>
+        prev.length < MAX_PLAYERS ? [...prev, { id: player.id, name: player.name, cpuLevel: null }] : prev
+      )
     } catch (e) {
       setError(
         isDuplicateError(e)
@@ -157,32 +175,18 @@ export function NewGameScreen() {
     }
   }
 
-  const canStart = mode === 'humans' ? selected.length >= 2 : you !== null
+  const canStart = selected.length >= 2
 
   const handleStart = () => {
     if (!canStart) return
-    if (mode === 'humans') {
-      navigate('/game', {
-        state: {
-          startingScore, legs, sets,
-          players: selected.map(p => p.name),
-          playerIds: selected.map(p => p.id),
-          cpuLevels: selected.map(() => null),
-        },
-      })
-    } else {
-      const human = { name: you!.name, id: you!.id, cpu: null as number | null }
-      const cpu = { name: 'Computer', id: 'cpu', cpu: cpuLevel }
-      const order = cpuStarts ? [cpu, human] : [human, cpu]
-      navigate('/game', {
-        state: {
-          startingScore, legs, sets,
-          players: order.map(p => p.name),
-          playerIds: order.map(p => (p.cpu != null ? null : p.id)),
-          cpuLevels: order.map(p => p.cpu),
-        },
-      })
-    }
+    navigate('/game', {
+      state: {
+        startingScore, legs, sets,
+        players: selected.map(s => s.name),
+        playerIds: selected.map(s => (s.cpuLevel != null ? null : s.id)),
+        cpuLevels: selected.map(s => s.cpuLevel),
+      },
+    })
   }
 
   return (
@@ -207,149 +211,65 @@ export function NewGameScreen() {
         </div>
       )}
 
-      {/* Tegenstander-type */}
+      {/* Spelers */}
       <div className="flex flex-col gap-3">
-        <span className="text-xs text-slate-600 uppercase tracking-widest font-medium">Tegenstander</span>
-        <div className="grid grid-cols-2 gap-1 bg-slate-800 border border-slate-700 rounded-xl p-1">
-          {(['humans', 'computer'] as Mode[]).map(m => (
-            <button
-              key={m}
-              onClick={() => setMode(m)}
-              className={`h-10 rounded-lg text-sm font-semibold transition-colors ${
-                mode === m ? 'bg-blue-600 text-white' : 'text-slate-400 active:text-slate-200'
-              }`}
-            >
-              {m === 'humans' ? 'Mensen' : 'Computer'}
-            </button>
-          ))}
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-slate-600 uppercase tracking-widest font-medium">Spelers</span>
+          {selected.length > 1 && <span className="text-[11px] text-slate-600">⠿ sleep · nr. 1 begint</span>}
         </div>
-      </div>
 
-      {loading ? (
-        <p className="text-slate-500 text-sm py-2">Profielen laden…</p>
-      ) : mode === 'humans' ? (
-        /* ─── Mensen: 2-4 profielen, sleepbaar ─── */
-        <div className="flex flex-col gap-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-slate-600 uppercase tracking-widest font-medium">Spelers</span>
-            {selected.length > 1 && <span className="text-[11px] text-slate-600">⠿ sleep · nr. 1 begint</span>}
-          </div>
-
-          {selected.length > 0 && (
-            <DndContext
-              sensors={sensors}
-              collisionDetection={closestCenter}
-              onDragEnd={handleDragEnd}
-              modifiers={[restrictToVerticalAxis, restrictToParentElement]}
-            >
-              <SortableContext items={selected.map(p => p.id)} strategy={verticalListSortingStrategy}>
-                <div className="flex flex-col gap-2">
-                  {selected.map((player, i) => (
-                    <SortablePlayerRow
-                      key={player.id}
-                      player={player}
-                      index={i}
-                      onRemove={() => setSelected(selected.filter(p => p.id !== player.id))}
-                    />
-                  ))}
-                </div>
-              </SortableContext>
-            </DndContext>
-          )}
-
-          {selected.length < MAX_PLAYERS && (
-            <div className="flex flex-wrap gap-2">
-              {available.map(p => (
-                <button
-                  key={p.id}
-                  onClick={() => setSelected([...selected, p])}
-                  className="h-10 px-4 rounded-full bg-slate-800 border border-slate-700 text-slate-200 text-sm font-medium active:bg-slate-700 transition-colors"
-                >
-                  + {p.name}
-                </button>
-              ))}
-              <button
-                onClick={() => setCreating(true)}
-                disabled={busy}
-                className="h-10 px-4 rounded-full border border-dashed border-slate-600 text-slate-400 text-sm active:bg-slate-800 transition-colors"
-              >
-                + Nieuw profiel
-              </button>
-            </div>
-          )}
-        </div>
-      ) : (
-        /* ─── Computer: jij + niveau + wie begint ─── */
-        <>
-          <div className="flex flex-col gap-3">
-            <span className="text-xs text-slate-600 uppercase tracking-widest font-medium">Jij</span>
-            <div className="flex flex-wrap gap-2">
-              {profiles.map(p => (
-                <button
-                  key={p.id}
-                  onClick={() => setYou(p)}
-                  className={`h-10 px-4 rounded-full border text-sm font-medium transition-colors ${
-                    you?.id === p.id
-                      ? 'bg-blue-600 border-blue-600 text-white'
-                      : 'bg-slate-800 border-slate-700 text-slate-200 active:bg-slate-700'
-                  }`}
-                >
-                  {p.name}
-                </button>
-              ))}
-              <button
-                onClick={() => setCreating(true)}
-                disabled={busy}
-                className="h-10 px-4 rounded-full border border-dashed border-slate-600 text-slate-400 text-sm active:bg-slate-800 transition-colors"
-              >
-                + Nieuw profiel
-              </button>
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-3">
-            <span className="text-xs text-slate-600 uppercase tracking-widest font-medium">Computer-niveau</span>
-            <div className="flex items-center justify-between bg-slate-800 border border-slate-700 rounded-xl pl-4 pr-1 h-12">
-              <span className="text-[11px] text-slate-500">~{cpuTargetAverage(cpuLevel)} gemiddeld</span>
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={() => setCpuLevel(v => Math.max(1, v - 1))}
-                  className="w-10 h-10 rounded-lg bg-slate-700 text-slate-200 text-xl font-bold flex items-center justify-center active:bg-slate-600"
-                >
-                  −
-                </button>
-                <span className="w-8 text-center text-lg font-bold text-slate-100">{cpuLevel}</span>
-                <button
-                  onClick={() => setCpuLevel(v => Math.min(CPU_LEVELS, v + 1))}
-                  className="w-10 h-10 rounded-lg bg-slate-700 text-slate-200 text-xl font-bold flex items-center justify-center active:bg-slate-600"
-                >
-                  +
-                </button>
+        {selected.length > 0 && (
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+            modifiers={[restrictToVerticalAxis, restrictToParentElement]}
+          >
+            <SortableContext items={selected.map(s => s.id)} strategy={verticalListSortingStrategy}>
+              <div className="flex flex-col gap-2">
+                {selected.map((slot, i) => (
+                  <SortablePlayerRow key={slot.id} slot={slot} index={i} onRemove={() => removeSlot(slot.id)} />
+                ))}
               </div>
-            </div>
-          </div>
+            </SortableContext>
+          </DndContext>
+        )}
 
-          <div className="flex flex-col gap-3">
-            <span className="text-xs text-slate-600 uppercase tracking-widest font-medium">Wie begint</span>
-            <div className="grid grid-cols-2 gap-1 bg-slate-800 border border-slate-700 rounded-xl p-1">
-              {[
-                { label: 'Jij', cpu: false },
-                { label: 'Computer', cpu: true },
-              ].map(o => (
-                <button
-                  key={o.label}
-                  onClick={() => setCpuStarts(o.cpu)}
-                  className={`h-10 rounded-lg text-sm font-semibold transition-colors ${
-                    cpuStarts === o.cpu ? 'bg-blue-600 text-white' : 'text-slate-400 active:text-slate-200'
-                  }`}
-                >
-                  {o.label}
-                </button>
-              ))}
+        {/* Gestippelde 'speler toevoegen'-rij → opent kiezer */}
+        {selected.length < MAX_PLAYERS && (
+          <button
+            onClick={() => setShowPicker(true)}
+            className="h-12 rounded-xl border border-dashed border-slate-700 text-slate-500 text-sm hover:border-slate-500 hover:text-slate-300 active:bg-slate-800 transition-colors"
+          >
+            + Speler toevoegen
+          </button>
+        )}
+
+        {/* Computer-niveau (alleen bij computer in het spel) */}
+        {hasCpu && (
+          <div className="flex flex-col gap-2 bg-slate-800/40 border border-slate-800 rounded-xl px-4 py-3 mt-1">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-slate-300">Computer-niveau</span>
+              <span className="text-xs text-slate-500">
+                <span className="font-bold text-blue-300">{cpuLevel}</span> · ~{cpuTargetAverage(cpuLevel)} gem.
+              </span>
+            </div>
+            <input
+              type="range"
+              min={1}
+              max={CPU_LEVELS}
+              step={1}
+              value={cpuLevel}
+              onChange={e => setCpuLevel(Number(e.target.value))}
+              className="w-full h-2 accent-blue-500 cursor-pointer"
+            />
+            <div className="flex justify-between text-[10px] text-slate-600 px-0.5">
+              <span>makkelijk</span>
+              <span>moeilijk</span>
             </div>
           </div>
-        </>
-      )}
+        )}
+      </div>
 
       {/* Score */}
       <div className="flex flex-col gap-3">
@@ -412,6 +332,65 @@ export function NewGameScreen() {
           Spel starten
         </button>
       </div>
+
+      {/* Kiezer-modal */}
+      {showPicker && (
+        <div
+          className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowPicker(false)}
+        >
+          <div
+            className="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-sm flex flex-col max-h-[80svh] shadow-2xl"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between p-4 border-b border-slate-700">
+              <h2 className="text-slate-100 font-bold text-lg">Speler toevoegen</h2>
+              <button onClick={() => setShowPicker(false)} className="text-slate-500 text-xl">
+                ✕
+              </button>
+            </div>
+
+            <div className="overflow-y-auto p-3 flex flex-col gap-2">
+              {!hasCpu && (
+                <button
+                  onClick={addComputer}
+                  className="flex items-center justify-between bg-blue-950/40 border border-blue-800/50 rounded-xl px-4 h-14 active:bg-blue-900/40 transition-colors"
+                >
+                  <div className="flex flex-col items-start leading-tight">
+                    <span className="text-blue-200 font-semibold">Computer</span>
+                    <span className="text-[11px] text-slate-500">Speel tegen de computer</span>
+                  </div>
+                  <span className="text-blue-400 text-lg">›</span>
+                </button>
+              )}
+
+              {pickable.map(p => (
+                <button
+                  key={p.id}
+                  onClick={() => addProfile(p)}
+                  className="flex items-center justify-between bg-slate-700/50 border border-slate-700 rounded-xl px-4 h-14 text-slate-100 font-medium active:bg-slate-700 transition-colors"
+                >
+                  {p.name}
+                  <span className="text-slate-500 text-lg">›</span>
+                </button>
+              ))}
+
+              {loading && <p className="text-slate-500 text-sm text-center py-2">Profielen laden…</p>}
+
+              <button
+                onClick={() => {
+                  setShowPicker(false)
+                  setCreating(true)
+                }}
+                disabled={busy}
+                className="h-12 rounded-xl border border-dashed border-slate-600 text-slate-400 text-sm active:bg-slate-700/50 transition-colors"
+              >
+                + Nieuw profiel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {creating && (
         <OnScreenKeyboard label="Nieuw profiel" initialValue="" onClose={handleCreateProfile} />
