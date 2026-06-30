@@ -5,6 +5,7 @@ import { NewGameScreen } from './screens/NewGameScreen'
 import { GameScreen } from './screens/GameScreen'
 import { GameOverScreen } from './screens/GameOverScreen'
 import { StatsScreen } from './screens/StatsScreen'
+import { SettingsScreen } from './screens/SettingsScreen'
 
 function App() {
   return (
@@ -15,6 +16,7 @@ function App() {
         <Route path="/game" element={<GameScreen />} />
         <Route path="/game-over" element={<GameOverScreen />} />
         <Route path="/stats" element={<StatsScreen />} />
+        <Route path="/settings" element={<SettingsScreen />} />
       </Routes>
     </BrowserRouter>
   )
