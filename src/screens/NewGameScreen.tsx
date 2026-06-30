@@ -24,7 +24,10 @@ export function NewGameScreen() {
   const [recent] = useState<string[]>(loadRecent)
 
   const addPlayer = () => {
-    if (players.length < 4) setPlayers([...players, ''])
+    if (players.length >= 4) return
+    const idx = players.length
+    setPlayers([...players, ''])
+    setActiveField(idx) // toetsenbord meteen openen voor de nieuwe speler
   }
 
   const updatePlayer = (i: number, name: string) => {
@@ -98,10 +101,10 @@ export function NewGameScreen() {
               >
                 {name || `Speler ${i + 1}`}
               </button>
-              {i >= 2 && (
+              {players.length > 1 && (
                 <button
                   onClick={() => removePlayer(i)}
-                  className="w-10 h-10 rounded-xl bg-slate-800 border border-slate-700 text-slate-500 flex items-center justify-center"
+                  className="w-10 h-10 rounded-xl bg-slate-800 border border-slate-700 text-slate-500 flex items-center justify-center active:bg-slate-700"
                 >
                   ✕
                 </button>
@@ -199,9 +202,11 @@ export function NewGameScreen() {
       {activeField !== null && (
         <OnScreenKeyboard
           label={`Speler ${activeField + 1}`}
-          value={players[activeField]}
-          onChange={name => updatePlayer(activeField, name)}
-          onClose={() => setActiveField(null)}
+          initialValue={players[activeField]}
+          onClose={value => {
+            updatePlayer(activeField, value)
+            setActiveField(null)
+          }}
         />
       )}
     </div>
