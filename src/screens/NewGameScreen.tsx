@@ -251,21 +251,23 @@ export function NewGameScreen() {
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium text-slate-300">Computer-niveau</span>
               <span className="text-xs text-slate-500">
-                <span className="font-bold text-blue-300">{cpuLevel}</span> · ~{cpuTargetAverage(cpuLevel)} gem.
+                Niveau <span className="font-bold text-blue-300">{cpuLevel}</span> · ~{cpuTargetAverage(cpuLevel)} gem.
               </span>
             </div>
-            <input
-              type="range"
-              min={1}
-              max={CPU_LEVELS}
-              step={1}
-              value={cpuLevel}
-              onChange={e => setCpuLevel(Number(e.target.value))}
-              className="w-full h-2 accent-blue-500 cursor-pointer"
-            />
-            <div className="flex justify-between text-[10px] text-slate-600 px-0.5">
-              <span>makkelijk</span>
-              <span>moeilijk</span>
+            <div className="flex gap-1">
+              {Array.from({ length: CPU_LEVELS }, (_, i) => i + 1).map(lvl => (
+                <button
+                  key={lvl}
+                  onClick={() => setCpuLevel(lvl)}
+                  className={`flex-1 h-10 rounded-lg text-sm font-bold transition-colors ${
+                    cpuLevel === lvl
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-slate-800 border border-slate-700 text-slate-400 active:bg-slate-700'
+                  }`}
+                >
+                  {lvl}
+                </button>
+              ))}
             </div>
           </div>
         )}
