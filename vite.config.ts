@@ -10,6 +10,19 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
+      workbox: {
+        cleanupOutdatedCaches: true,
+        // HTML niet vooraf cachen → bij het openen eerst online kijken naar de
+        // nieuwste versie, met terugval op de cache als je offline bent.
+        globPatterns: ['**/*.{js,css,png,svg,webmanifest}'],
+        runtimeCaching: [
+          {
+            urlPattern: ({ request }) => request.mode === 'navigate',
+            handler: 'NetworkFirst',
+            options: { cacheName: 'app-html', networkTimeoutSeconds: 3 },
+          },
+        ],
+      },
       manifest: {
         name: 'Darts',
         short_name: 'Darts',
