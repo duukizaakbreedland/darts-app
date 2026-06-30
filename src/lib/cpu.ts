@@ -3,9 +3,9 @@
 
 export const CPU_LEVELS = 10
 
-// Spreiding (sigma in mm) waarmee de CPU op T20 mikt → bepaalt het scoor-gemiddelde.
-// Niveau 1..10 → 3-dart gemiddelde ~30..75 (stappen van 5).
-const SIGMA_BY_LEVEL = [62.7, 43.9, 32.0, 24.7, 20.8, 18.6, 16.5, 15.0, 13.6, 12.5]
+// Spreiding (sigma in mm). Gekalibreerd zodat het IN-GAME 3-dart gemiddelde
+// (inclusief opzet-, finish- en bust-darts) per niveau ~30..75 is (stappen van 5).
+const SIGMA_BY_LEVEL = [37.6, 27.5, 22.1, 18.7, 16.5, 14.9, 13.5, 12.3, 11.1, 10.1]
 
 // Doel 3-dart gemiddelde per niveau (puur informatief / voor weergave).
 const AVG_BY_LEVEL = [30, 35, 40, 45, 50, 55, 60, 65, 70, 75]

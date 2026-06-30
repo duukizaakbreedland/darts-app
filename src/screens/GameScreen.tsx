@@ -6,12 +6,14 @@ import { CheckoutModal } from '../components/CheckoutModal'
 import { HistoryModal } from '../components/HistoryModal'
 import { getCheckout, isCheckoutable } from '../lib/checkouts'
 import { useX01Game, playerAverage, legStats, lastVisit } from '../hooks/useX01Game'
+import { simulateCpuTurn } from '../lib/cpuStrategy'
 
 interface NavState {
   players: string[]
   startingScore: number
   legs: number
   sets: number
+  cpuLevels?: (number | null)[]
 }
 
 export function GameScreen() {
@@ -34,8 +36,10 @@ export function GameScreen() {
   const [showHistory, setShowHistory] = useState(false)
 
   const players = nav.players
+  const cpuLevels = nav.cpuLevels ?? players.map(() => null)
   const active = game.activePlayer
   const activeScore = game.scores[active]
+  const activeIsCpu = cpuLevels[active] != null
 
   // Naar game-over springen zodra er een winnaar is
   useEffect(() => {
@@ -46,8 +50,26 @@ export function GameScreen() {
     }
   }, [game.winner])
 
+  // Computer speelt automatisch zijn beurt
+  useEffect(() => {
+    if (game.winner !== null) return
+    const level = cpuLevels[active]
+    if (level == null) return
+    const id = setTimeout(() => {
+      const turn = simulateCpuTurn(game.scores[active], level)
+      game.submit({
+        points: turn.points,
+        darts: turn.darts,
+        checkout: turn.checkout,
+        dartsAtDouble: turn.dartsAtDouble,
+      })
+    }, 1200)
+    return () => clearTimeout(id)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active, game.currentLeg, game.currentSet, game.winner])
+
   const handleSubmit = (points: number) => {
-    if (points > 180 || points < 0 || bustFlash) return
+    if (activeIsCpu || points > 180 || points < 0 || bustFlash) return
     const remaining = activeScore - points
 
     // Geldige checkout → eerst de dubbel-vraag tonen
@@ -84,7 +106,13 @@ export function GameScreen() {
   const handleUndo = () => {
     setInputValue('')
     setBustFlash(false)
+    const last = game.visits[game.visits.length - 1]
     game.undo()
+    // Was de laatste beurt van de computer? Draai ook de mensbeurt ervoor terug,
+    // zodat de speler opnieuw gooit (anders speelt de CPU meteen weer automatisch).
+    if (last && cpuLevels[last.player] != null) {
+      game.undo()
+    }
   }
 
   return (
@@ -141,13 +169,13 @@ export function GameScreen() {
         <div className="flex items-center gap-2">
           <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
           <span className="text-xs text-blue-400 font-semibold uppercase tracking-widest">
-            {players[active]} aan de beurt
+            {activeIsCpu ? 'Computer gooit…' : `${players[active]} aan de beurt`}
           </span>
         </div>
       </div>
 
       {/* Keypad */}
-      <div className="mt-auto">
+      <div className={`mt-auto transition-opacity ${activeIsCpu ? 'opacity-40 pointer-events-none' : ''}`}>
         <Keypad
           value={inputValue}
           onChange={setInputValue}

@@ -18,11 +18,16 @@ import { CSS } from '@dnd-kit/utilities'
 import { restrictToVerticalAxis, restrictToParentElement } from '@dnd-kit/modifiers'
 import { OnScreenKeyboard } from '../components/OnScreenKeyboard'
 import { fetchPlayers, createPlayer, isDuplicateError } from '../lib/players'
+import { CPU_LEVELS, cpuTargetAverage } from '../lib/cpu'
 import type { Player } from '../types/database'
 
 const STARTING_SCORES = [301, 501, 701]
 const MAX_PLAYERS = 4
 const PROFILES_CACHE = 'darts.profilesCache'
+const CPU_ID = 'cpu'
+
+// Een deelnemer is een profiel (cpuLevel = null) of de computer (cpuLevel = 1-10)
+type Slot = { id: string; name: string; cpuLevel: number | null }
 
 function loadCachedProfiles(): Player[] {
   try {
@@ -37,16 +42,19 @@ function findMe(list: Player[]): Player | undefined {
   return list.find(p => p.name.trim().toLowerCase() === 'duuk')
 }
 
+function slotLabel(s: Slot): string {
+  return s.cpuLevel != null ? `Computer · niv. ${s.cpuLevel}` : s.name
+}
+
 type RowProps = {
-  player: Player
+  id: string
+  label: string
   index: number
   onRemove: () => void
 }
 
-function SortablePlayerRow({ player, index, onRemove }: RowProps) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id: player.id,
-  })
+function SortablePlayerRow({ id, label, index, onRemove }: RowProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id })
   const style = { transform: CSS.Transform.toString(transform), transition }
 
   return (
@@ -67,7 +75,7 @@ function SortablePlayerRow({ player, index, onRemove }: RowProps) {
         {index + 1}
       </div>
       <div className="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-4 h-12 flex items-center text-slate-100">
-        {player.name}
+        {label}
       </div>
       <button
         onClick={onRemove}
@@ -87,9 +95,9 @@ export function NewGameScreen() {
 
   // Init uit lokale cache, zodat het scherm meteen mét Duuk geselecteerd verschijnt
   const [profiles, setProfiles] = useState<Player[]>(() => loadCachedProfiles())
-  const [selected, setSelected] = useState<Player[]>(() => {
+  const [selected, setSelected] = useState<Slot[]>(() => {
     const me = findMe(loadCachedProfiles())
-    return me ? [me] : []
+    return me ? [{ id: me.id, name: me.name, cpuLevel: null }] : []
   })
   const [loading, setLoading] = useState(() => loadCachedProfiles().length === 0)
   const [busy, setBusy] = useState(false)
@@ -103,34 +111,45 @@ export function NewGameScreen() {
       .then(list => {
         setProfiles(list)
         localStorage.setItem(PROFILES_CACHE, JSON.stringify(list))
-        // Alleen bij eerste gebruik (lege selectie) Duuk alsnog voorselecteren
         setSelected(prev => {
           if (prev.length > 0) return prev
           const me = findMe(list)
-          return me ? [me] : prev
+          return me ? [{ id: me.id, name: me.name, cpuLevel: null }] : prev
         })
       })
       .catch(() => setError('Kon profielen niet laden. Controleer je internetverbinding.'))
       .finally(() => setLoading(false))
   }, [])
 
+  const hasCpu = selected.some(s => s.cpuLevel != null)
+  const cpuLevel = selected.find(s => s.cpuLevel != null)?.cpuLevel ?? 5
   const available = profiles.filter(p => !selected.some(s => s.id === p.id))
 
   const addProfile = (p: Player) => {
     if (selected.length >= MAX_PLAYERS) return
-    setSelected([...selected, p])
+    setSelected([...selected, { id: p.id, name: p.name, cpuLevel: null }])
+  }
+
+  const addCpu = () => {
+    if (selected.length >= MAX_PLAYERS || hasCpu) return
+    setSelected([...selected, { id: CPU_ID, name: 'Computer', cpuLevel: 5 }])
+  }
+
+  const setCpuLevel = (level: number) => {
+    const clamped = Math.min(CPU_LEVELS, Math.max(1, level))
+    setSelected(prev => prev.map(s => (s.cpuLevel != null ? { ...s, cpuLevel: clamped } : s)))
   }
 
   const removeSelected = (id: string) => {
-    setSelected(selected.filter(p => p.id !== id))
+    setSelected(selected.filter(s => s.id !== id))
   }
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event
     if (over && active.id !== over.id) {
       setSelected(prev => {
-        const oldIndex = prev.findIndex(p => p.id === active.id)
-        const newIndex = prev.findIndex(p => p.id === over.id)
+        const oldIndex = prev.findIndex(s => s.id === active.id)
+        const newIndex = prev.findIndex(s => s.id === over.id)
         return arrayMove(prev, oldIndex, newIndex)
       })
     }
@@ -149,7 +168,9 @@ export function NewGameScreen() {
         localStorage.setItem(PROFILES_CACHE, JSON.stringify(next))
         return next
       })
-      setSelected(prev => (prev.length < MAX_PLAYERS ? [...prev, player] : prev))
+      setSelected(prev =>
+        prev.length < MAX_PLAYERS ? [...prev, { id: player.id, name: player.name, cpuLevel: null }] : prev
+      )
     } catch (e) {
       setError(
         isDuplicateError(e)
@@ -170,8 +191,9 @@ export function NewGameScreen() {
         startingScore,
         legs,
         sets,
-        players: selected.map(p => p.name),
-        playerIds: selected.map(p => p.id),
+        players: selected.map(s => s.name),
+        playerIds: selected.map(s => (s.cpuLevel != null ? null : s.id)),
+        cpuLevels: selected.map(s => s.cpuLevel),
       },
     })
   }
@@ -205,7 +227,7 @@ export function NewGameScreen() {
           {selected.length > 1 && <span className="text-[11px] text-slate-600">⠿ sleep · nr. 1 begint</span>}
         </div>
 
-        {/* Geselecteerde spelers (sleepbaar) */}
+        {/* Geselecteerde deelnemers (sleepbaar) */}
         {selected.length > 0 && (
           <DndContext
             sensors={sensors}
@@ -213,14 +235,15 @@ export function NewGameScreen() {
             onDragEnd={handleDragEnd}
             modifiers={[restrictToVerticalAxis, restrictToParentElement]}
           >
-            <SortableContext items={selected.map(p => p.id)} strategy={verticalListSortingStrategy}>
+            <SortableContext items={selected.map(s => s.id)} strategy={verticalListSortingStrategy}>
               <div className="flex flex-col gap-2">
-                {selected.map((player, i) => (
+                {selected.map((slot, i) => (
                   <SortablePlayerRow
-                    key={player.id}
-                    player={player}
+                    key={slot.id}
+                    id={slot.id}
+                    label={slotLabel(slot)}
                     index={i}
-                    onRemove={() => removeSelected(player.id)}
+                    onRemove={() => removeSelected(slot.id)}
                   />
                 ))}
               </div>
@@ -228,12 +251,37 @@ export function NewGameScreen() {
           </DndContext>
         )}
 
-        {/* Kies uit profielen */}
+        {/* Computer-niveau */}
+        {hasCpu && (
+          <div className="flex items-center justify-between bg-slate-800/50 border border-slate-800 rounded-xl pl-4 pr-1 h-12">
+            <div className="flex flex-col leading-tight">
+              <span className="text-sm text-slate-300">Computer-niveau</span>
+              <span className="text-[11px] text-slate-600">~{cpuTargetAverage(cpuLevel)} gemiddeld</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setCpuLevel(cpuLevel - 1)}
+                className="w-10 h-10 rounded-lg bg-slate-700 text-slate-200 text-xl font-bold flex items-center justify-center active:bg-slate-600"
+              >
+                −
+              </button>
+              <span className="w-8 text-center text-lg font-bold text-slate-100">{cpuLevel}</span>
+              <button
+                onClick={() => setCpuLevel(cpuLevel + 1)}
+                className="w-10 h-10 rounded-lg bg-slate-700 text-slate-200 text-xl font-bold flex items-center justify-center active:bg-slate-600"
+              >
+                +
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Kies uit profielen / computer */}
         {loading ? (
           <p className="text-slate-500 text-sm py-2">Profielen laden…</p>
         ) : (
           <>
-            {selected.length === 0 && available.length > 0 && (
+            {selected.length === 0 && (
               <p className="text-slate-500 text-sm">Kies minimaal twee spelers:</p>
             )}
             {selected.length < MAX_PLAYERS && (
@@ -247,6 +295,14 @@ export function NewGameScreen() {
                     + {p.name}
                   </button>
                 ))}
+                {!hasCpu && (
+                  <button
+                    onClick={addCpu}
+                    className="h-10 px-4 rounded-full bg-slate-800 border border-slate-700 text-blue-300 text-sm font-medium active:bg-slate-700 transition-colors"
+                  >
+                    + Computer
+                  </button>
+                )}
                 <button
                   onClick={() => setCreating(true)}
                   disabled={busy}
@@ -326,11 +382,7 @@ export function NewGameScreen() {
       </div>
 
       {creating && (
-        <OnScreenKeyboard
-          label="Nieuw profiel"
-          initialValue=""
-          onClose={handleCreateProfile}
-        />
+        <OnScreenKeyboard label="Nieuw profiel" initialValue="" onClose={handleCreateProfile} />
       )}
     </div>
   )
