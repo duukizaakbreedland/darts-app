@@ -26,15 +26,9 @@ export function OnScreenKeyboard({ label, value, onChange, onClose }: OnScreenKe
         className="bg-slate-800 border-t border-slate-700 rounded-t-2xl shadow-2xl"
         onClick={e => e.stopPropagation()}
       >
-        {/* Header: huidig veld + waarde */}
+        {/* Header: huidig veld + Klaar */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-slate-700">
-          <div className="flex flex-col min-w-0">
-            <span className="text-xs text-slate-500 uppercase tracking-widest">{label}</span>
-            <span className="text-lg font-bold text-slate-100 truncate">
-              {value || <span className="text-slate-600">…</span>}
-              <span className="inline-block w-0.5 h-5 bg-blue-400 ml-0.5 align-middle animate-pulse" />
-            </span>
-          </div>
+          <span className="text-xs text-slate-500 uppercase tracking-widest truncate">{label}</span>
           <button
             onClick={onClose}
             className="px-5 h-10 rounded-xl bg-blue-600 text-white text-sm font-bold flex-shrink-0"
