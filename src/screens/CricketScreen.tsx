@@ -110,7 +110,7 @@ export function CricketScreen() {
                 </span>
               </div>
               {game.scoring && (
-                <div className={`text-2xl font-bold leading-tight ${active === i ? 'text-slate-100' : 'text-slate-600'}`}>
+                <div className={`text-4xl font-bold leading-tight ${active === i ? 'text-slate-100' : 'text-slate-600'}`}>
                   {game.scores[i]}
                 </div>
               )}
@@ -142,8 +142,8 @@ export function CricketScreen() {
         </span>
       </div>
 
-      {/* Invoer */}
-      <div className={`mt-auto flex flex-col gap-2 p-3 ${inputDisabled ? 'opacity-40 pointer-events-none' : ''}`}>
+      {/* Invoer — vult de resterende ruimte */}
+      <div className={`flex-1 flex flex-col gap-2 p-3 ${inputDisabled ? 'opacity-40 pointer-events-none' : ''}`}>
         {/* Multiplier */}
         <div className="flex gap-2">
           {[
@@ -154,7 +154,7 @@ export function CricketScreen() {
             <button
               key={m.v}
               onClick={() => setMult(m.v)}
-              className={`flex-1 h-11 rounded-lg text-sm font-bold transition-colors ${
+              className={`flex-1 h-12 rounded-lg text-base font-bold transition-colors ${
                 mult === m.v ? 'bg-blue-600 text-white' : 'bg-slate-800 border border-slate-700 text-slate-400'
               }`}
             >
@@ -163,20 +163,20 @@ export function CricketScreen() {
           ))}
         </div>
 
-        {/* Nummers */}
-        <div className="grid grid-cols-4 gap-2">
+        {/* Nummers — vullen de rest van het scherm */}
+        <div className="grid grid-cols-4 grid-rows-2 gap-2 flex-1">
           {CRICKET_NUMBERS.map((num, idx) => (
             <button
               key={num}
               onClick={() => hitNumber(idx)}
-              className="h-14 rounded-xl bg-emerald-600 active:bg-emerald-700 text-white text-lg font-bold shadow-md shadow-emerald-900/30 transition-colors"
+              className="rounded-xl bg-emerald-600 active:bg-emerald-700 text-white text-2xl font-bold shadow-md shadow-emerald-900/30 transition-colors"
             >
               {numLabel(num)}
             </button>
           ))}
           <button
             onClick={() => game.miss()}
-            className="h-14 rounded-xl bg-red-600 active:bg-red-700 text-white text-lg font-bold shadow-md shadow-red-900/30 transition-colors"
+            className="rounded-xl bg-red-600 active:bg-red-700 text-white text-2xl font-bold shadow-md shadow-red-900/30 transition-colors"
           >
             Mis
           </button>

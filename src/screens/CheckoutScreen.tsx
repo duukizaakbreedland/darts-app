@@ -88,7 +88,7 @@ export function CheckoutScreen() {
       </div>
 
       {/* Target */}
-      <div className="flex-1 flex flex-col items-center justify-center gap-2">
+      <div className="flex flex-col items-center justify-center gap-2 py-5 border-b border-slate-800">
         <span className="text-xs text-slate-500 uppercase tracking-widest">
           {activeIsCpu ? 'Computer gooit…' : 'Gooi uit'}
         </span>
@@ -96,15 +96,15 @@ export function CheckoutScreen() {
         {hint && <div className="text-lg font-semibold text-slate-400 tracking-wide">{hint}</div>}
       </div>
 
-      {/* Invoer: geslaagd in 1/2/3 darts of mislukt */}
-      <div className={`p-3 flex flex-col gap-2 ${activeIsCpu ? 'opacity-40 pointer-events-none' : ''}`}>
+      {/* Invoer: geslaagd in 1/2/3 darts of mislukt — vult de resterende ruimte */}
+      <div className={`flex-1 p-3 flex flex-col gap-2 ${activeIsCpu ? 'opacity-40 pointer-events-none' : ''}`}>
         <span className="text-center text-xs text-slate-600 uppercase tracking-widest">In hoeveel darts?</span>
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-3 gap-3 flex-1">
           {[1, 2, 3].map(d => (
             <button
               key={d}
               onClick={() => game.result(d)}
-              className="h-16 rounded-xl bg-emerald-600 active:bg-emerald-700 text-white text-2xl font-bold shadow-lg shadow-emerald-900/30 transition-colors"
+              className="rounded-2xl bg-emerald-600 active:bg-emerald-700 text-white text-4xl font-bold shadow-lg shadow-emerald-900/30 transition-colors"
             >
               {d}
             </button>
@@ -112,7 +112,7 @@ export function CheckoutScreen() {
         </div>
         <button
           onClick={() => game.result(null)}
-          className="h-14 rounded-xl bg-red-600 active:bg-red-700 text-white text-lg font-bold shadow-lg shadow-red-900/30 transition-colors"
+          className="h-20 rounded-2xl bg-red-600 active:bg-red-700 text-white text-2xl font-bold shadow-lg shadow-red-900/30 transition-colors"
         >
           Niet gehaald
         </button>
