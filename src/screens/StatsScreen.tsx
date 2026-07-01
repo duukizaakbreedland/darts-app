@@ -199,36 +199,38 @@ export function StatsScreen() {
     <TabScreen>
       <h1 className="text-3xl font-bold text-slate-100 tracking-tight">Statistieken</h1>
 
-      {/* Spel-selector — blijft bovenaan plakken tijdens scrollen */}
-      <div className="sticky top-0 z-10 bg-slate-900 flex gap-2 overflow-x-auto -mx-5 px-5 py-2">
-        {GAMES.map(g => (
-          <button
-            key={g.key}
-            onClick={() => setGameKey(g.key)}
-            className={`h-9 px-4 rounded-full text-sm font-semibold whitespace-nowrap flex-shrink-0 transition-colors ${
-              gameKey === g.key
-                ? 'bg-blue-600 text-white'
-                : 'bg-slate-800 border border-slate-700 text-slate-400'
-            }`}
-          >
-            {g.label}
-          </button>
-        ))}
-      </div>
+      {/* Spel-selector + periode — samen bovenaan plakken tijdens scrollen */}
+      <div className="sticky top-0 z-20 bg-slate-900 -mx-5 px-5 pb-3 flex flex-col gap-3">
+        <div className="flex gap-2 overflow-x-auto pt-1">
+          {GAMES.map(g => (
+            <button
+              key={g.key}
+              onClick={() => setGameKey(g.key)}
+              className={`h-9 px-4 rounded-full text-sm font-semibold whitespace-nowrap flex-shrink-0 transition-colors ${
+                gameKey === g.key
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-slate-800 border border-slate-700 text-slate-400'
+              }`}
+            >
+              {g.label}
+            </button>
+          ))}
+        </div>
 
-      {isX01 && (
-        <Segmented<StatsPeriod>
-          label="Periode"
-          value={period}
-          onChange={setPeriod}
-          options={[
-            { label: 'Alles', value: 'all' },
-            { label: 'Dag', value: 'day' },
-            { label: 'Week', value: 'week' },
-            { label: 'Maand', value: 'month' },
-          ]}
-        />
-      )}
+        {isX01 && (
+          <Segmented<StatsPeriod>
+            label="Periode"
+            value={period}
+            onChange={setPeriod}
+            options={[
+              { label: 'Alles', value: 'all' },
+              { label: 'Dag', value: 'day' },
+              { label: 'Week', value: 'week' },
+              { label: 'Maand', value: 'month' },
+            ]}
+          />
+        )}
+      </div>
 
       {error && (
         <div className="bg-red-900/20 border border-red-800/40 text-red-300 text-sm rounded-xl px-4 py-3">
