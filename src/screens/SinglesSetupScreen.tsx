@@ -20,6 +20,7 @@ export function SinglesSetupScreen() {
       state: {
         players: participants.map(s => s.name),
         cpuLevels: participants.map(s => s.cpuLevel),
+        playerIds: participants.map(s => (s.cpuLevel != null ? null : s.id)),
         order,
         includeBull,
       },

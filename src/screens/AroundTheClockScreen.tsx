@@ -7,6 +7,7 @@ import {
   type DartOutcome,
 } from '../hooks/useAroundTheClock'
 import { cpuAtcDart } from '../lib/cpuGames'
+import { saveTrainingGame } from '../lib/saveGame'
 
 type Order = 'desc' | 'asc' | 'random'
 type End = 'none' | 'bull' | 'bullseye'
@@ -14,6 +15,7 @@ type End = 'none' | 'bull' | 'bullseye'
 interface NavState {
   players: string[]
   cpuLevels?: (number | null)[]
+  playerIds?: (string | null)[]
   order?: Order
   hitMode?: AtcHitMode
   hitsRequired?: number
@@ -91,10 +93,25 @@ export function AroundTheClockScreen() {
   // Naar game-over bij winnaar
   useEffect(() => {
     if (game.winner !== null) {
+      const w = game.winner
+      if (nav.playerIds) {
+        void saveTrainingGame(
+          'around_the_clock',
+          { order: nav.order, hitMode, hitsRequired: nav.hitsRequired, end: nav.end },
+          nav.playerIds,
+          w,
+          players.map((_, i) => ({
+            won: i === w,
+            score: game.positions[i], // aantal targets geraakt
+            metrics: { total: targets.length },
+          }))
+        )
+      }
       navigate('/game-over', {
-        state: { winner: players[game.winner], players, rematchPath: '/training/atc' },
+        state: { winner: players[w], players, rematchPath: '/training/atc' },
       })
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [game.winner])
 
   // CPU gooit automatisch, dart voor dart

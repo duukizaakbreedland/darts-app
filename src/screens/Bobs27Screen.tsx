@@ -3,10 +3,12 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { GameHeader } from '../components/GameHeader'
 import { useBobs27 } from '../hooks/useBobs27'
 import { cpuBobsHit } from '../lib/cpuGames'
+import { saveTrainingGame } from '../lib/saveGame'
 
 interface NavState {
   players: string[]
   cpuLevels?: (number | null)[]
+  playerIds?: (string | null)[]
 }
 
 const targetLabel = (t: number) => (t === 25 ? 'Bull' : `Double ${t}`)
@@ -42,8 +44,22 @@ export function Bobs27Screen() {
 
   useEffect(() => {
     if (game.winner !== null) {
+      const w = game.winner
+      if (nav.playerIds) {
+        void saveTrainingGame(
+          'bobs27',
+          {},
+          nav.playerIds,
+          w,
+          players.map((_, i) => ({
+            won: i === w,
+            score: game.scores[i],
+            metrics: { eliminated: game.eliminated[i] },
+          }))
+        )
+      }
       navigate('/game-over', {
-        state: { winner: players[game.winner], players, rematchPath: '/training/bobs27' },
+        state: { winner: players[w], players, rematchPath: '/training/bobs27' },
       })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

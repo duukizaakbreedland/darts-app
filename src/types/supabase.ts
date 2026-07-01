@@ -50,6 +50,51 @@ export type Database = {
           },
         ]
       }
+      game_results: {
+        Row: {
+          created_at: string | null
+          game_id: string
+          id: string
+          metrics: Json
+          player_id: string
+          score: number | null
+          won: boolean
+        }
+        Insert: {
+          created_at?: string | null
+          game_id: string
+          id?: string
+          metrics?: Json
+          player_id: string
+          score?: number | null
+          won?: boolean
+        }
+        Update: {
+          created_at?: string | null
+          game_id?: string
+          id?: string
+          metrics?: Json
+          player_id?: string
+          score?: number | null
+          won?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_results_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "game_results_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       games: {
         Row: {
           completed_at: string | null

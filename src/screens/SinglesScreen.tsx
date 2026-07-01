@@ -3,10 +3,12 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { GameHeader } from '../components/GameHeader'
 import { useSinglesTraining } from '../hooks/useSinglesTraining'
 import { cpuSingleHit } from '../lib/cpuGames'
+import { saveTrainingGame } from '../lib/saveGame'
 
 interface NavState {
   players: string[]
   cpuLevels?: (number | null)[]
+  playerIds?: (string | null)[]
   order?: 'asc' | 'random'
   includeBull?: boolean
 }
@@ -57,8 +59,18 @@ export function SinglesScreen() {
 
   useEffect(() => {
     if (game.winner !== null) {
+      const w = game.winner
+      if (nav.playerIds) {
+        void saveTrainingGame(
+          'singles',
+          { targets: targets.length },
+          nav.playerIds,
+          w,
+          players.map((_, i) => ({ won: i === w, score: game.scores[i] }))
+        )
+      }
       navigate('/game-over', {
-        state: { winner: players[game.winner], players, rematchPath: '/training/singles' },
+        state: { winner: players[w], players, rematchPath: '/training/singles' },
       })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

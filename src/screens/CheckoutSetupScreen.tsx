@@ -19,6 +19,7 @@ export function CheckoutSetupScreen() {
       state: {
         players: participants.map(s => s.name),
         cpuLevels: participants.map(s => s.cpuLevel),
+        playerIds: participants.map(s => (s.cpuLevel != null ? null : s.id)),
         range,
         target,
         seed: generateCheckouts(range, target * participants.length + 20),

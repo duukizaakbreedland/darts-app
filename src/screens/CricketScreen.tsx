@@ -7,10 +7,12 @@ import {
   CRICKET_NUMBERS_TACTICS,
 } from '../hooks/useCricket'
 import { cpuCricketDart } from '../lib/cpuGames'
+import { saveTrainingGame } from '../lib/saveGame'
 
 interface NavState {
   players: string[]
   cpuLevels?: (number | null)[]
+  playerIds?: (string | null)[]
   variant?: 'standard' | 'tactics'
   scoring?: boolean
   legs?: number
@@ -61,8 +63,22 @@ export function CricketScreen() {
 
   useEffect(() => {
     if (game.winner !== null) {
+      const w = game.winner
+      if (nav.playerIds) {
+        void saveTrainingGame(
+          'cricket',
+          { variant: nav.variant, scoring: nav.scoring, legs: nav.legs, sets: nav.sets },
+          nav.playerIds,
+          w,
+          players.map((_, i) => ({
+            won: i === w,
+            score: null,
+            metrics: { setsWon: game.setsWon[i], legsWon: game.legsWon[i] },
+          }))
+        )
+      }
       navigate('/game-over', {
-        state: { winner: players[game.winner], players, rematchPath: '/training/cricket' },
+        state: { winner: players[w], players, rematchPath: '/training/cricket' },
       })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -13,6 +13,7 @@ export function Bobs27SetupScreen() {
       state: {
         players: participants.map(s => s.name),
         cpuLevels: participants.map(s => s.cpuLevel),
+        playerIds: participants.map(s => (s.cpuLevel != null ? null : s.id)),
       },
     })
   }

@@ -4,10 +4,12 @@ import { GameHeader } from '../components/GameHeader'
 import { useCheckout, type CheckoutRange } from '../hooks/useCheckout'
 import { getCheckout } from '../lib/checkouts'
 import { cpuCheckoutResult } from '../lib/cpuGames'
+import { saveTrainingGame } from '../lib/saveGame'
 
 interface NavState {
   players: string[]
   cpuLevels?: (number | null)[]
+  playerIds?: (string | null)[]
   range?: CheckoutRange
   target?: number
   seed?: number[]
@@ -34,8 +36,22 @@ export function CheckoutScreen() {
 
   useEffect(() => {
     if (game.winner !== null) {
+      const w = game.winner
+      if (nav.playerIds) {
+        void saveTrainingGame(
+          'checkout_training',
+          { range: nav.range, target: nav.target },
+          nav.playerIds,
+          w,
+          players.map((_, i) => ({
+            won: i === w,
+            score: game.finishes[i],
+            metrics: { finishes: game.finishes[i], attempts: game.attempts[i], dartsUsed: game.dartsUsed[i] },
+          }))
+        )
+      }
       navigate('/game-over', {
-        state: { winner: players[game.winner], players, rematchPath: '/training/checkout' },
+        state: { winner: players[w], players, rematchPath: '/training/checkout' },
       })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

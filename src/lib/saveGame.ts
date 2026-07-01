@@ -1,6 +1,75 @@
 import { supabase } from './supabase'
 import type { Visit } from '../hooks/useX01Game'
 
+export type TrainingGameType = 'cricket' | 'around_the_clock' | 'shanghai' | 'checkout_training'
+// (bob's 27 en singles slaan we op onder eigen sleutels hieronder)
+
+export interface TrainingResult {
+  won: boolean
+  score: number | null
+  metrics?: Record<string, number | boolean | null>
+}
+
+/**
+ * Slaat een voltooid trainingsspel op: games-rij + game_players + game_results
+ * (per menselijke speler). Computer wordt overgeslagen. Faalt stil.
+ */
+export async function saveTrainingGame(
+  gameType: string,
+  settings: Record<string, unknown>,
+  playerIds: (string | null)[],
+  winnerIndex: number,
+  results: TrainingResult[]
+): Promise<boolean> {
+  if (!playerIds.some(id => id != null)) return false
+  try {
+    const winnerId = playerIds[winnerIndex] ?? null
+    const { data: game, error: gErr } = await supabase
+      .from('games')
+      .insert({
+        game_type: gameType,
+        settings: settings as never,
+        status: 'completed',
+        winner_id: winnerId,
+        completed_at: new Date().toISOString(),
+      })
+      .select('id')
+      .single()
+    if (gErr) throw gErr
+    const gameId = game.id
+
+    const gpRows = playerIds
+      .map((id, idx) => (id ? { game_id: gameId, player_id: id, order_num: idx } : null))
+      .filter((r): r is { game_id: string; player_id: string; order_num: number } => r != null)
+    if (gpRows.length) {
+      const { error } = await supabase.from('game_players').insert(gpRows)
+      if (error) throw error
+    }
+
+    const resultRows = playerIds
+      .map((id, idx) =>
+        id
+          ? {
+              game_id: gameId,
+              player_id: id,
+              won: results[idx]?.won ?? false,
+              score: results[idx]?.score ?? null,
+              metrics: (results[idx]?.metrics ?? {}) as never,
+            }
+          : null
+      )
+      .filter(r => r != null)
+    if (resultRows.length) {
+      const { error } = await supabase.from('game_results').insert(resultRows as never)
+      if (error) throw error
+    }
+    return true
+  } catch (e) {
+    console.warn('Trainingsspel opslaan mislukt:', e)
+    return false
+  }
+}
+
 export interface SaveX01Params {
   startingScore: number
   legs: number

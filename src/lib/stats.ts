@@ -211,6 +211,78 @@ export async function fetchX01Stats(period: StatsPeriod = 'all'): Promise<Player
   return result.sort((a, b) => b.gamesPlayed - a.gamesPlayed || b.gamesWon - a.gamesWon)
 }
 
+export interface TrainingStats {
+  playerId: string
+  name: string
+  gamesPlayed: number
+  gamesWon: number
+  bestScore: number | null
+  avgScore: number | null
+  extra: Record<string, number> // som van metrics (voor afgeleide waarden zoals success%)
+}
+
+interface ResultRow {
+  player_id: string
+  won: boolean
+  score: number | null
+  metrics: Record<string, number | boolean | null>
+}
+
+/** Statistieken voor een trainingsspel-type, per speler. */
+export async function fetchTrainingStats(gameType: string): Promise<TrainingStats[]> {
+  const { data: games, error: gErr } = await supabase
+    .from('games')
+    .select('id')
+    .eq('game_type', gameType)
+    .eq('status', 'completed')
+  if (gErr) throw gErr
+  if (!games || games.length === 0) return []
+  const gameIds = games.map(g => g.id)
+
+  const [{ data: results, error: rErr }, { data: players, error: pErr }] = await Promise.all([
+    supabase.from('game_results').select('player_id, won, score, metrics').in('game_id', gameIds),
+    supabase.from('players').select('id, name'),
+  ])
+  if (rErr) throw rErr
+  if (pErr) throw pErr
+
+  const nameById = new Map((players ?? []).map(p => [p.id, p.name]))
+  const map = new Map<string, TrainingStats & { scoreSum: number; scoreCount: number }>()
+
+  for (const r of (results ?? []) as ResultRow[]) {
+    let s = map.get(r.player_id)
+    if (!s) {
+      s = {
+        playerId: r.player_id, name: nameById.get(r.player_id) ?? '?',
+        gamesPlayed: 0, gamesWon: 0, bestScore: null, avgScore: null,
+        extra: {}, scoreSum: 0, scoreCount: 0,
+      }
+      map.set(r.player_id, s)
+    }
+    s.gamesPlayed += 1
+    if (r.won) s.gamesWon += 1
+    if (r.score != null) {
+      s.scoreSum += r.score
+      s.scoreCount += 1
+      if (s.bestScore == null || r.score > s.bestScore) s.bestScore = r.score
+    }
+    for (const [k, v] of Object.entries(r.metrics ?? {})) {
+      if (typeof v === 'number') s.extra[k] = (s.extra[k] ?? 0) + v
+    }
+  }
+
+  const out: TrainingStats[] = [...map.values()].map(s => ({
+    playerId: s.playerId,
+    name: s.name,
+    gamesPlayed: s.gamesPlayed,
+    gamesWon: s.gamesWon,
+    bestScore: s.bestScore,
+    avgScore: s.scoreCount > 0 ? s.scoreSum / s.scoreCount : null,
+    extra: s.extra,
+  }))
+  return out.sort((a, b) => b.gamesPlayed - a.gamesPlayed || b.gamesWon - a.gamesWon)
+}
+
 /** De meest recente X01-potjes, elk met per-speler stats. */
 export async function fetchRecentGames(limit = 10): Promise<RecentGame[]> {
   const { data: games, error } = await supabase

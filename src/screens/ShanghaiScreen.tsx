@@ -3,10 +3,12 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { GameHeader } from '../components/GameHeader'
 import { useShanghai, type SegOutcome } from '../hooks/useShanghai'
 import { cpuShanghaiDart } from '../lib/cpuGames'
+import { saveTrainingGame } from '../lib/saveGame'
 
 interface NavState {
   players: string[]
   cpuLevels?: (number | null)[]
+  playerIds?: (string | null)[]
   rounds?: number
 }
 
@@ -37,7 +39,21 @@ export function ShanghaiScreen() {
 
   useEffect(() => {
     if (game.winner !== null) {
-      const label = game.shanghai ? `${players[game.winner]} — SHANGHAI! 🎉` : players[game.winner]
+      const w = game.winner
+      const label = game.shanghai ? `${players[w]} — SHANGHAI! 🎉` : players[w]
+      if (nav.playerIds) {
+        void saveTrainingGame(
+          'shanghai',
+          { rounds: nav.rounds ?? 7 },
+          nav.playerIds,
+          w,
+          players.map((_, i) => ({
+            won: i === w,
+            score: game.scores[i],
+            metrics: { shanghai: game.shanghai && i === w },
+          }))
+        )
+      }
       navigate('/game-over', {
         state: { winner: label, players, rematchPath: '/training/shanghai' },
       })

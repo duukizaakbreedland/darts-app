@@ -4,10 +4,68 @@ import { Segmented } from '../components/Segmented'
 import {
   fetchX01Stats,
   fetchRecentGames,
+  fetchTrainingStats,
   type PlayerStats,
   type StatsPeriod,
   type RecentGame,
+  type TrainingStats,
 } from '../lib/stats'
+
+// Spel-selectie bovenaan
+const GAMES: { key: string; label: string }[] = [
+  { key: 'x01', label: 'X01' },
+  { key: 'cricket', label: 'Cricket' },
+  { key: 'around_the_clock', label: 'Around the Clock' },
+  { key: 'shanghai', label: 'Shanghai' },
+  { key: 'bobs27', label: "Bob's 27" },
+  { key: 'singles', label: 'Singles' },
+  { key: 'checkout_training', label: 'Checkout' },
+]
+
+// Welke extra cellen tonen we per trainingsspel?
+function trainingCells(key: string, s: TrainingStats): { label: string; value: string | number }[] {
+  const cells: { label: string; value: string | number }[] = []
+  if (key === 'shanghai' || key === 'bobs27') {
+    cells.push({ label: 'beste score', value: s.bestScore ?? '–' })
+    cells.push({ label: 'gem. score', value: s.avgScore != null ? s.avgScore.toFixed(0) : '–' })
+  } else if (key === 'singles') {
+    cells.push({ label: 'beste treffers', value: s.bestScore ?? '–' })
+    cells.push({ label: 'gem. treffers', value: s.avgScore != null ? s.avgScore.toFixed(1) : '–' })
+  } else if (key === 'around_the_clock') {
+    cells.push({ label: 'beste (targets)', value: s.bestScore ?? '–' })
+  } else if (key === 'checkout_training') {
+    const fin = s.extra.finishes ?? 0
+    const att = s.extra.attempts ?? 0
+    cells.push({ label: 'finishes', value: fin })
+    cells.push({ label: 'success', value: att > 0 ? `${Math.round((fin / att) * 100)}%` : '–' })
+  }
+  return cells
+}
+
+function TrainingCard({ gameKey, s }: { gameKey: string; s: TrainingStats }) {
+  const winPct = s.gamesPlayed > 0 ? Math.round((s.gamesWon / s.gamesPlayed) * 100) : 0
+  const cells = trainingCells(gameKey, s)
+  return (
+    <div className="bg-slate-800/60 border border-slate-800 rounded-2xl p-4">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-base font-bold text-slate-100">{s.name}</span>
+        <span className="text-xs text-slate-500">
+          <span className="text-slate-300 font-bold">{s.gamesWon}</span>/{s.gamesPlayed} · {winPct}%
+        </span>
+      </div>
+      {cells.length > 0 && (
+        <div className="grid grid-cols-3 divide-x divide-slate-800 border-t border-slate-800 pt-1">
+          {cells.map(c => (
+            <div key={c.label} className="flex flex-col items-center py-2">
+              <span className="text-lg font-bold text-slate-100">{c.value}</span>
+              <span className="text-[10px] text-slate-500 uppercase tracking-wide text-center leading-tight">{c.label}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
 
 function StatCell({ label, value }: { label: string; value: string | number }) {
   return (
@@ -108,39 +166,69 @@ function GameRow({ game }: { game: RecentGame }) {
 }
 
 export function StatsScreen() {
+  const [gameKey, setGameKey] = useState('x01')
   const [period, setPeriod] = useState<StatsPeriod>('all')
   const [stats, setStats] = useState<PlayerStats[]>([])
   const [recent, setRecent] = useState<RecentGame[]>([])
+  const [training, setTraining] = useState<TrainingStats[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  const isX01 = gameKey === 'x01'
 
   useEffect(() => {
     setLoading(true)
     setError(null)
-    Promise.all([fetchX01Stats(period), fetchRecentGames(10)])
-      .then(([s, r]) => {
-        setStats(s)
-        setRecent(r)
-      })
-      .catch(() => setError('Kon statistieken niet laden. Controleer je internetverbinding.'))
-      .finally(() => setLoading(false))
-  }, [period])
+    if (isX01) {
+      Promise.all([fetchX01Stats(period), fetchRecentGames(10)])
+        .then(([s, r]) => {
+          setStats(s)
+          setRecent(r)
+        })
+        .catch(() => setError('Kon statistieken niet laden. Controleer je internetverbinding.'))
+        .finally(() => setLoading(false))
+    } else {
+      fetchTrainingStats(gameKey)
+        .then(setTraining)
+        .catch(() => setError('Kon statistieken niet laden. Controleer je internetverbinding.'))
+        .finally(() => setLoading(false))
+    }
+  }, [gameKey, period, isX01])
 
   return (
     <TabScreen>
       <h1 className="text-3xl font-bold text-slate-100 tracking-tight">Statistieken</h1>
 
-      <Segmented<StatsPeriod>
-        label="Periode"
-        value={period}
-        onChange={setPeriod}
-        options={[
-          { label: 'Alles', value: 'all' },
-          { label: 'Dag', value: 'day' },
-          { label: 'Week', value: 'week' },
-          { label: 'Maand', value: 'month' },
-        ]}
-      />
+      {/* Spel-selector */}
+      <div className="flex gap-2 overflow-x-auto -mx-5 px-5 pb-1">
+        {GAMES.map(g => (
+          <button
+            key={g.key}
+            onClick={() => setGameKey(g.key)}
+            className={`h-9 px-4 rounded-full text-sm font-semibold whitespace-nowrap flex-shrink-0 transition-colors ${
+              gameKey === g.key
+                ? 'bg-blue-600 text-white'
+                : 'bg-slate-800 border border-slate-700 text-slate-400'
+            }`}
+          >
+            {g.label}
+          </button>
+        ))}
+      </div>
+
+      {isX01 && (
+        <Segmented<StatsPeriod>
+          label="Periode"
+          value={period}
+          onChange={setPeriod}
+          options={[
+            { label: 'Alles', value: 'all' },
+            { label: 'Dag', value: 'day' },
+            { label: 'Week', value: 'week' },
+            { label: 'Maand', value: 'month' },
+          ]}
+        />
+      )}
 
       {error && (
         <div className="bg-red-900/20 border border-red-800/40 text-red-300 text-sm rounded-xl px-4 py-3">
@@ -150,28 +238,40 @@ export function StatsScreen() {
 
       {loading ? (
         <p className="text-slate-500 text-sm text-center py-10">Laden…</p>
-      ) : stats.length === 0 ? (
-        <div className="flex-1 flex flex-col items-center justify-center text-center gap-2">
-          <p className="text-slate-500 text-sm">Geen potjes in deze periode.</p>
-          <p className="text-slate-600 text-xs">Speel een X01-potje en je statistieken verschijnen hier.</p>
-        </div>
-      ) : (
-        <>
-          <div className="flex flex-col gap-3">
-            {stats.map(s => (
-              <PlayerCard key={s.playerId} s={s} />
-            ))}
+      ) : isX01 ? (
+        stats.length === 0 ? (
+          <div className="flex-1 flex flex-col items-center justify-center text-center gap-2">
+            <p className="text-slate-500 text-sm">Geen potjes in deze periode.</p>
+            <p className="text-slate-600 text-xs">Speel een X01-potje en je statistieken verschijnen hier.</p>
           </div>
-
-          {recent.length > 0 && (
+        ) : (
+          <>
             <div className="flex flex-col gap-3">
-              <span className="text-xs text-slate-600 uppercase tracking-widest font-medium">Recente potjes</span>
-              {recent.map(g => (
-                <GameRow key={g.id} game={g} />
+              {stats.map(s => (
+                <PlayerCard key={s.playerId} s={s} />
               ))}
             </div>
-          )}
-        </>
+            {recent.length > 0 && (
+              <div className="flex flex-col gap-3">
+                <span className="text-xs text-slate-600 uppercase tracking-widest font-medium">Recente potjes</span>
+                {recent.map(g => (
+                  <GameRow key={g.id} game={g} />
+                ))}
+              </div>
+            )}
+          </>
+        )
+      ) : training.length === 0 ? (
+        <div className="flex-1 flex flex-col items-center justify-center text-center gap-2">
+          <p className="text-slate-500 text-sm">Nog geen potjes gespeeld.</p>
+          <p className="text-slate-600 text-xs">Speel dit spel en je statistieken verschijnen hier.</p>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-3">
+          {training.map(s => (
+            <TrainingCard key={s.playerId} gameKey={gameKey} s={s} />
+          ))}
+        </div>
       )}
     </TabScreen>
   )
