@@ -33,9 +33,9 @@ function PlayerCard({ s }: { s: PlayerStats }) {
         <StatCell label="hoogste worp" value={s.highestScore || '–'} />
       </div>
       <div className="grid grid-cols-3 divide-x divide-slate-800">
-        <StatCell label="180's" value={s.count180} />
-        <StatCell label="140+" value={s.count140plus} />
         <StatCell label="100+" value={s.count100plus} />
+        <StatCell label="120+" value={s.count120plus} />
+        <StatCell label="140+" value={s.count140plus} />
       </div>
     </div>
   )

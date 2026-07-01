@@ -16,6 +16,7 @@ export interface PlayerStats {
   highestFinish: number
   count180: number
   count140plus: number
+  count120plus: number
   count100plus: number
   totalDarts: number
 }
@@ -96,7 +97,7 @@ export async function fetchX01Stats(period: StatsPeriod = 'all'): Promise<Player
         playerId: id, name: nameById.get(id) ?? '?',
         gamesPlayed: 0, gamesWon: 0, threeDartAvg: 0, first9Avg: 0, bestLeg: null,
         avgDartsPerLeg: 0, legsWon: 0, highestScore: 0, highestFinish: 0,
-        count180: 0, count140plus: 0, count100plus: 0, totalDarts: 0,
+        count180: 0, count140plus: 0, count120plus: 0, count100plus: 0, totalDarts: 0,
       }
       stats.set(id, s)
     }
@@ -120,6 +121,7 @@ export async function fetchX01Stats(period: StatsPeriod = 'all'): Promise<Player
       if (t.score > s.highestScore) s.highestScore = t.score
       if (t.score === 180) s.count180 += 1
       if (t.score >= 140) s.count140plus += 1
+      if (t.score >= 120) s.count120plus += 1
       if (t.score >= 100) s.count100plus += 1
     }
     if (t.round_number <= 3) {

@@ -10,6 +10,7 @@ export interface GamePlayerStats {
   highestFinish: number
   count180: number
   count140plus: number
+  count120plus: number
   count100plus: number
   totalDarts: number
 }
@@ -60,6 +61,7 @@ export function computeX01GameStats(visits: Visit[], players: string[]): GamePla
       highestFinish,
       count180: nonBust.filter(v => v.points === 180).length,
       count140plus: nonBust.filter(v => v.points >= 140).length,
+      count120plus: nonBust.filter(v => v.points >= 120).length,
       count100plus: nonBust.filter(v => v.points >= 100).length,
       totalDarts,
     }

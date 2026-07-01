@@ -14,9 +14,9 @@ const ROWS: { label: string; get: (s: GamePlayerStats) => string | number }[] = 
   { label: 'Beste leg', get: s => s.bestLeg ?? '–' },
   { label: 'Hoogste worp', get: s => s.highestScore || '–' },
   { label: 'Hoogste finish', get: s => s.highestFinish || '–' },
-  { label: "180's", get: s => s.count180 },
-  { label: '140+', get: s => s.count140plus },
   { label: '100+', get: s => s.count100plus },
+  { label: '120+', get: s => s.count120plus },
+  { label: '140+', get: s => s.count140plus },
   { label: 'Darts', get: s => s.totalDarts },
 ]
 
@@ -38,7 +38,7 @@ export function GameOverScreen() {
         <div className="bg-slate-800/50 border border-slate-800 rounded-2xl overflow-hidden">
           {/* Spelernamen */}
           <div className="flex items-center border-b border-slate-800">
-            <div className="w-28 flex-shrink-0 px-3 py-2" />
+            <div className="w-32 flex-shrink-0 px-3 py-2" />
             {playerStats.map((s, i) => (
               <div key={i} className="flex-1 px-2 py-2 text-center text-sm font-bold text-slate-100 truncate">
                 {s.name}
@@ -47,7 +47,7 @@ export function GameOverScreen() {
           </div>
           {ROWS.map((row, ri) => (
             <div key={row.label} className={`flex items-center ${ri % 2 ? 'bg-slate-900/30' : ''}`}>
-              <div className="w-28 flex-shrink-0 px-3 py-2 text-xs text-slate-500 uppercase tracking-wide">
+              <div className="w-32 flex-shrink-0 px-3 py-2 text-xs text-slate-500 whitespace-nowrap">
                 {row.label}
               </div>
               {playerStats.map((s, i) => (
