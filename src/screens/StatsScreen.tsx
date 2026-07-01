@@ -199,8 +199,8 @@ export function StatsScreen() {
     <TabScreen>
       <h1 className="text-3xl font-bold text-slate-100 tracking-tight">Statistieken</h1>
 
-      {/* Spel-selector */}
-      <div className="flex gap-2 overflow-x-auto -mx-5 px-5 pb-1">
+      {/* Spel-selector — blijft bovenaan plakken tijdens scrollen */}
+      <div className="sticky top-0 z-10 bg-slate-900 flex gap-2 overflow-x-auto -mx-5 px-5 py-2">
         {GAMES.map(g => (
           <button
             key={g.key}

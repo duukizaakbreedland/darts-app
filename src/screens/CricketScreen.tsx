@@ -78,7 +78,20 @@ export function CricketScreen() {
         )
       }
       navigate('/game-over', {
-        state: { winner: players[w], players, rematchPath: '/training/cricket' },
+        state: {
+          winner: players[w],
+          rematchPath: '/training/cricket',
+          statTable: {
+            players,
+            winnerIndex: w,
+            rows: showSetsLegs
+              ? [
+                  { label: 'Sets', values: players.map((_, i) => game.setsWon[i]) },
+                  { label: 'Legs', values: players.map((_, i) => game.legsWon[i]) },
+                ]
+              : [{ label: 'Resultaat', values: players.map((_, i) => (i === w ? '🏆' : '—')) }],
+          },
+        },
       })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

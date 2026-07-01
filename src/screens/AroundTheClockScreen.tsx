@@ -108,7 +108,20 @@ export function AroundTheClockScreen() {
         )
       }
       navigate('/game-over', {
-        state: { winner: players[w], players, rematchPath: '/training/atc' },
+        state: {
+          winner: players[w],
+          rematchPath: '/training/atc',
+          statTable: {
+            players,
+            winnerIndex: w,
+            rows: [
+              {
+                label: 'Targets',
+                values: players.map((_, i) => `${Math.min(game.positions[i], targets.length)}/${targets.length}`),
+              },
+            ],
+          },
+        },
       })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

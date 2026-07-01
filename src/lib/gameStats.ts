@@ -1,4 +1,5 @@
 import type { Visit } from '../hooks/useX01Game'
+import type { StatTable } from '../screens/GameOverScreen'
 
 export interface GamePlayerStats {
   name: string
@@ -13,6 +14,25 @@ export interface GamePlayerStats {
   count120plus: number
   count100plus: number
   totalDarts: number
+}
+
+/** Bouw de stat-tabel voor het eindscherm van een X01-potje. */
+export function x01StatTable(visits: Visit[], players: string[], winnerIndex: number): StatTable {
+  const s = computeX01GameStats(visits, players)
+  return {
+    players,
+    winnerIndex,
+    rows: [
+      { label: '3-dart gem.', values: s.map(p => p.threeDartAvg.toFixed(1)) },
+      { label: 'First 9', values: s.map(p => p.first9Avg.toFixed(1)) },
+      { label: 'Legs', values: s.map(p => p.legsWon) },
+      { label: 'Beste leg', values: s.map(p => p.bestLeg ?? '–') },
+      { label: 'Hoogste finish', values: s.map(p => p.highestFinish || '–') },
+      { label: '100+', values: s.map(p => p.count100plus) },
+      { label: '120+', values: s.map(p => p.count120plus) },
+      { label: '140+', values: s.map(p => p.count140plus) },
+    ],
+  }
 }
 
 /** Bereken per-speler statistieken van één afgelopen X01-potje uit de worpen. */

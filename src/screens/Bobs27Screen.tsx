@@ -59,7 +59,18 @@ export function Bobs27Screen() {
         )
       }
       navigate('/game-over', {
-        state: { winner: players[w], players, rematchPath: '/training/bobs27' },
+        state: {
+          winner: players[w],
+          rematchPath: '/training/bobs27',
+          statTable: {
+            players,
+            winnerIndex: w,
+            rows: [
+              { label: 'Eindscore', values: players.map((_, i) => game.scores[i]) },
+              { label: 'Status', values: players.map((_, i) => (game.eliminated[i] ? 'uit' : '—')) },
+            ],
+          },
+        },
       })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

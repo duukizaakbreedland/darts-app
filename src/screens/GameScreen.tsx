@@ -8,7 +8,7 @@ import { getCheckout, isCheckoutable } from '../lib/checkouts'
 import { useX01Game, playerAverage, legStats, lastVisit } from '../hooks/useX01Game'
 import { simulateCpuTurn } from '../lib/cpuStrategy'
 import { saveX01Game } from '../lib/saveGame'
-import { computeX01GameStats } from '../lib/gameStats'
+import { x01StatTable } from '../lib/gameStats'
 
 interface NavState {
   players: string[]
@@ -62,10 +62,8 @@ export function GameScreen() {
       navigate('/game-over', {
         state: {
           winner: players[winnerIndex],
-          players,
-          setsWon: game.setsWon,
           rematchPath: '/new-game',
-          playerStats: computeX01GameStats(game.visits, players),
+          statTable: x01StatTable(game.visits, players, winnerIndex),
         },
       })
     }

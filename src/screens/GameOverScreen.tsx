@@ -1,29 +1,21 @@
 import { useLocation, useNavigate } from 'react-router-dom'
-import type { GamePlayerStats } from '../lib/gameStats'
+
+export interface StatTable {
+  players: string[]
+  winnerIndex: number
+  rows: { label: string; values: (string | number)[] }[]
+}
 
 interface OverState {
   winner: string
   rematchPath?: string
-  playerStats?: GamePlayerStats[]
+  statTable?: StatTable
 }
-
-const ROWS: { label: string; get: (s: GamePlayerStats) => string | number }[] = [
-  { label: '3-dart gem.', get: s => s.threeDartAvg.toFixed(1) },
-  { label: 'First 9', get: s => s.first9Avg.toFixed(1) },
-  { label: 'Legs', get: s => s.legsWon },
-  { label: 'Beste leg', get: s => s.bestLeg ?? '–' },
-  { label: 'Hoogste worp', get: s => s.highestScore || '–' },
-  { label: 'Hoogste finish', get: s => s.highestFinish || '–' },
-  { label: '100+', get: s => s.count100plus },
-  { label: '120+', get: s => s.count120plus },
-  { label: '140+', get: s => s.count140plus },
-  { label: 'Darts', get: s => s.totalDarts },
-]
 
 export function GameOverScreen() {
   const location = useLocation()
   const navigate = useNavigate()
-  const { winner, rematchPath, playerStats } = (location.state as OverState) ?? { winner: '?' }
+  const { winner, rematchPath, statTable } = (location.state as OverState) ?? { winner: '?' }
   const rematch = rematchPath ?? '/new-game'
 
   return (
@@ -33,26 +25,30 @@ export function GameOverScreen() {
         <h1 className="text-2xl font-bold text-slate-100">{winner} wint!</h1>
       </div>
 
-      {/* Stats naast elkaar */}
-      {playerStats && playerStats.length > 0 && (
+      {statTable && statTable.rows.length > 0 && (
         <div className="bg-slate-800/50 border border-slate-800 rounded-2xl overflow-hidden">
-          {/* Spelernamen */}
           <div className="flex items-center border-b border-slate-800">
             <div className="w-32 flex-shrink-0 px-3 py-2" />
-            {playerStats.map((s, i) => (
-              <div key={i} className="flex-1 px-2 py-2 text-center text-sm font-bold text-slate-100 truncate">
-                {s.name}
+            {statTable.players.map((name, i) => (
+              <div
+                key={i}
+                className={`flex-1 px-2 py-2 text-center text-sm font-bold truncate ${
+                  i === statTable.winnerIndex ? 'text-emerald-400' : 'text-slate-100'
+                }`}
+              >
+                {i === statTable.winnerIndex ? '🏆 ' : ''}
+                {name}
               </div>
             ))}
           </div>
-          {ROWS.map((row, ri) => (
+          {statTable.rows.map((row, ri) => (
             <div key={row.label} className={`flex items-center ${ri % 2 ? 'bg-slate-900/30' : ''}`}>
               <div className="w-32 flex-shrink-0 px-3 py-2 text-xs text-slate-500 whitespace-nowrap">
                 {row.label}
               </div>
-              {playerStats.map((s, i) => (
+              {row.values.map((v, i) => (
                 <div key={i} className="flex-1 px-2 py-2 text-center text-sm font-semibold text-slate-200">
-                  {row.get(s)}
+                  {v}
                 </div>
               ))}
             </div>

@@ -70,7 +70,18 @@ export function SinglesScreen() {
         )
       }
       navigate('/game-over', {
-        state: { winner: players[w], players, rematchPath: '/training/singles' },
+        state: {
+          winner: players[w],
+          rematchPath: '/training/singles',
+          statTable: {
+            players,
+            winnerIndex: w,
+            rows: [
+              { label: 'Treffers', values: players.map((_, i) => game.scores[i]) },
+              { label: 'Van', values: players.map(() => game.totalRounds * 3) },
+            ],
+          },
+        },
       })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -55,7 +55,18 @@ export function ShanghaiScreen() {
         )
       }
       navigate('/game-over', {
-        state: { winner: label, players, rematchPath: '/training/shanghai' },
+        state: {
+          winner: label,
+          rematchPath: '/training/shanghai',
+          statTable: {
+            players,
+            winnerIndex: w,
+            rows: [
+              { label: 'Punten', values: players.map((_, i) => game.scores[i]) },
+              { label: 'Shanghai', values: players.map((_, i) => (i === w && game.shanghai ? 'Ja' : '–')) },
+            ],
+          },
+        },
       })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

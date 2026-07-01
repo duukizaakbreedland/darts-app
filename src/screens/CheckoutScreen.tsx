@@ -51,7 +51,24 @@ export function CheckoutScreen() {
         )
       }
       navigate('/game-over', {
-        state: { winner: players[w], players, rematchPath: '/training/checkout' },
+        state: {
+          winner: players[w],
+          rematchPath: '/training/checkout',
+          statTable: {
+            players,
+            winnerIndex: w,
+            rows: [
+              { label: 'Finishes', values: players.map((_, i) => game.finishes[i]) },
+              { label: 'Pogingen', values: players.map((_, i) => game.attempts[i]) },
+              {
+                label: 'Success',
+                values: players.map((_, i) =>
+                  game.attempts[i] > 0 ? `${Math.round((game.finishes[i] / game.attempts[i]) * 100)}%` : '–'
+                ),
+              },
+            ],
+          },
+        },
       })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
