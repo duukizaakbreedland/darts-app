@@ -3,10 +3,10 @@ import { BottomNav } from '../components/BottomNav'
 import { PlayerLobby } from '../components/PlayerLobby'
 
 const TRAINING: { name: string; path?: string }[] = [
-  { name: 'Cricket' },
+  { name: 'Cricket', path: '/training/cricket' },
   { name: 'Around the Clock', path: '/training/atc' },
-  { name: 'Shanghai' },
-  { name: 'Checkout' },
+  { name: 'Shanghai', path: '/training/shanghai' },
+  { name: 'Checkout', path: '/training/checkout' },
 ]
 
 export function HomeScreen() {
