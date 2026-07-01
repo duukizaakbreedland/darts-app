@@ -3,7 +3,6 @@ import { throwDart, singleAim, doubleAim, tripleAim, BULL_AIM } from './dartboar
 import { cpuSigma, cpuDoubleChance } from './cpu'
 import type { AtcHitMode, DartOutcome } from '../hooks/useAroundTheClock'
 import type { SegOutcome } from '../hooks/useShanghai'
-import { CRICKET_NUMBERS } from '../hooks/useCricket'
 
 /** Around the Clock: de CPU mikt op het doel en meldt wat-ie gooide. */
 export function cpuAtcDart(
@@ -48,6 +47,7 @@ export function cpuShanghaiDart(roundNumber: number, level: number): SegOutcome 
 
 /** Cricket: kies een doel-nummer en gooi erop. Retourneert {numberIndex, marks} of null (mis). */
 export function cpuCricketDart(
+  numbers: number[],
   ownMarks: number[],
   allClosed: (numIdx: number) => boolean,
   level: number
@@ -57,7 +57,7 @@ export function cpuCricketDart(
   if (targetIdx === -1) targetIdx = ownMarks.findIndex((_, idx) => !allClosed(idx))
   if (targetIdx === -1) targetIdx = 0
 
-  const num = CRICKET_NUMBERS[targetIdx]
+  const num = numbers[targetIdx]
   const sigma = cpuSigma(level)
   const res = num === 25 ? throwDart(BULL_AIM, sigma) : throwDart(tripleAim(num), sigma)
 
@@ -69,6 +69,27 @@ export function cpuCricketDart(
   if (res.number !== num) return null
   const marks = res.ring === 'triple' ? 3 : res.ring === 'double' ? 2 : res.ring === 'single' ? 1 : 0
   return marks > 0 ? { numberIndex: targetIdx, marks } : null
+}
+
+/** Bob's 27: raakt de CPU de double van het doelnummer? (target 25 = bull) */
+export function cpuBobsHit(target: number, level: number): boolean {
+  const sigma = cpuSigma(level)
+  if (target === 25) {
+    return throwDart(BULL_AIM, sigma).ring === 'inner-bull' // double-bull
+  }
+  const res = throwDart(doubleAim(target), sigma)
+  return res.number === target && res.ring === 'double'
+}
+
+/** Singles Training: raakt de CPU de single van het doelnummer? (25 = bull) */
+export function cpuSingleHit(target: number, level: number): boolean {
+  const sigma = cpuSigma(level)
+  if (target === 25) {
+    const res = throwDart(BULL_AIM, sigma)
+    return res.ring === 'inner-bull' || res.ring === 'outer-bull'
+  }
+  const res = throwDart(singleAim(target), sigma)
+  return res.number === target && res.ring === 'single'
 }
 
 /** Checkout-training: haalt de CPU de finish? Zo ja, in hoeveel darts? (null = mislukt) */

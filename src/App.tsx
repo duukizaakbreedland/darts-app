@@ -16,6 +16,10 @@ import { CricketSetupScreen } from './screens/CricketSetupScreen'
 import { CricketScreen } from './screens/CricketScreen'
 import { CheckoutSetupScreen } from './screens/CheckoutSetupScreen'
 import { CheckoutScreen } from './screens/CheckoutScreen'
+import { Bobs27SetupScreen } from './screens/Bobs27SetupScreen'
+import { Bobs27Screen } from './screens/Bobs27Screen'
+import { SinglesSetupScreen } from './screens/SinglesSetupScreen'
+import { SinglesScreen } from './screens/SinglesScreen'
 
 function App() {
   return (
@@ -37,6 +41,10 @@ function App() {
         <Route path="/training/cricket/play" element={<CricketScreen />} />
         <Route path="/training/checkout" element={<CheckoutSetupScreen />} />
         <Route path="/training/checkout/play" element={<CheckoutScreen />} />
+        <Route path="/training/bobs27" element={<Bobs27SetupScreen />} />
+        <Route path="/training/bobs27/play" element={<Bobs27Screen />} />
+        <Route path="/training/singles" element={<SinglesSetupScreen />} />
+        <Route path="/training/singles/play" element={<SinglesScreen />} />
       </Routes>
     </BrowserRouter>
     </ParticipantsProvider>

@@ -1,13 +1,20 @@
 import { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { GameHeader } from '../components/GameHeader'
-import { useCricket, CRICKET_NUMBERS } from '../hooks/useCricket'
+import {
+  useCricket,
+  CRICKET_NUMBERS_STANDARD,
+  CRICKET_NUMBERS_TACTICS,
+} from '../hooks/useCricket'
 import { cpuCricketDart } from '../lib/cpuGames'
 
 interface NavState {
   players: string[]
   cpuLevels?: (number | null)[]
+  variant?: 'standard' | 'tactics'
   scoring?: boolean
+  legs?: number
+  sets?: number
 }
 
 const numLabel = (n: number) => (n === 25 ? 'Bull' : String(n))
@@ -36,11 +43,19 @@ export function CricketScreen() {
   const players = nav.players
   const cpuLevels = nav.cpuLevels ?? players.map(() => null)
 
-  const game = useCricket({ players, scoring: nav.scoring ?? true })
+  const numbers = (nav.variant ?? 'standard') === 'tactics' ? CRICKET_NUMBERS_TACTICS : CRICKET_NUMBERS_STANDARD
+  const game = useCricket({
+    players,
+    numbers,
+    scoring: nav.scoring ?? true,
+    legsToWin: Math.ceil((nav.legs ?? 1) / 2),
+    setsToWin: Math.ceil((nav.sets ?? 1) / 2),
+  })
   const active = game.activePlayer
   const activeIsCpu = cpuLevels[active] != null
   const turnDone = game.turnDarts >= 3
   const [mult, setMult] = useState(1)
+  const showSetsLegs = (nav.legs ?? 1) > 1 || (nav.sets ?? 1) > 1
 
   const allClosed = (numIdx: number) => players.every((_, pi) => game.marks[pi][numIdx] >= 3)
 
@@ -60,7 +75,7 @@ export function CricketScreen() {
     if (level == null || game.turnDarts >= 3) return
     const delay = game.turnDarts === 0 ? 1000 : 550
     const id = setTimeout(() => {
-      const res = cpuCricketDart(game.marks[active], allClosed, level)
+      const res = cpuCricketDart(numbers, game.marks[active], allClosed, level)
       if (res) game.hit(res.numberIndex, res.marks)
       else game.miss()
     }, delay)
@@ -109,6 +124,13 @@ export function CricketScreen() {
                   {cpuLevels[i] != null ? `${name} · ${cpuLevels[i]}` : name}
                 </span>
               </div>
+              {showSetsLegs && (
+                <div className="text-[11px] text-slate-500">
+                  <span className={`font-bold ${active === i ? 'text-slate-300' : 'text-slate-600'}`}>{game.setsWon[i]}</span> s
+                  <span className="mx-0.5 text-slate-700">·</span>
+                  <span className={`font-bold ${active === i ? 'text-slate-300' : 'text-slate-600'}`}>{game.legsWon[i]}</span> l
+                </div>
+              )}
               {game.scoring && (
                 <div className={`text-4xl font-bold leading-tight ${active === i ? 'text-slate-100' : 'text-slate-600'}`}>
                   {game.scores[i]}
@@ -120,7 +142,7 @@ export function CricketScreen() {
 
         {/* Nummer-rijen: [marks p1] [nummer] [marks p2] ... */}
         <div className="flex flex-col">
-          {CRICKET_NUMBERS.map((num, idx) => (
+          {numbers.map((num, idx) => (
             <div key={num} className="relative flex items-center border-t border-slate-800/70">
               {players.map((_, pi) => (
                 <div key={pi} className="flex-1 flex justify-center py-1.5">
@@ -164,8 +186,8 @@ export function CricketScreen() {
         </div>
 
         {/* Nummers — vullen de rest van het scherm */}
-        <div className="grid grid-cols-4 grid-rows-2 gap-2 flex-1">
-          {CRICKET_NUMBERS.map((num, idx) => (
+        <div className="grid grid-cols-4 auto-rows-fr gap-2 flex-1">
+          {numbers.map((num, idx) => (
             <button
               key={num}
               onClick={() => hitNumber(idx)}

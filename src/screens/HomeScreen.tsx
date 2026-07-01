@@ -7,6 +7,8 @@ const TRAINING: { name: string; path?: string }[] = [
   { name: 'Around the Clock', path: '/training/atc' },
   { name: 'Shanghai', path: '/training/shanghai' },
   { name: 'Checkout', path: '/training/checkout' },
+  { name: "Bob's 27", path: '/training/bobs27' },
+  { name: 'Singles Training', path: '/training/singles' },
 ]
 
 export function HomeScreen() {

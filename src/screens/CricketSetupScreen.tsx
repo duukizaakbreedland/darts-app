@@ -4,10 +4,15 @@ import { CpuLevelSelect } from '../components/CpuLevelSelect'
 import { Segmented } from '../components/Segmented'
 import { useParticipants } from '../context/Participants'
 
+type Variant = 'standard' | 'tactics'
+
 export function CricketSetupScreen() {
   const navigate = useNavigate()
   const { participants } = useParticipants()
+  const [variant, setVariant] = useState<Variant>('standard')
   const [scoring, setScoring] = useState(true)
+  const [legs, setLegs] = useState(1)
+  const [sets, setSets] = useState(1)
 
   const canStart = participants.length >= 2
 
@@ -17,7 +22,10 @@ export function CricketSetupScreen() {
       state: {
         players: participants.map(s => s.name),
         cpuLevels: participants.map(s => s.cpuLevel),
+        variant,
         scoring,
+        legs,
+        sets,
       },
     })
   }
@@ -39,6 +47,16 @@ export function CricketSetupScreen() {
 
       <CpuLevelSelect />
 
+      <Segmented<Variant>
+        label="Variant"
+        value={variant}
+        onChange={setVariant}
+        options={[
+          { label: 'Standaard (15-20)', value: 'standard' },
+          { label: 'Tactics (10-20)', value: 'tactics' },
+        ]}
+      />
+
       <Segmented<boolean>
         label="Puntentelling"
         value={scoring}
@@ -49,11 +67,32 @@ export function CricketSetupScreen() {
         ]}
       />
 
-      <p className="text-sm text-slate-500 -mt-2">
-        Sluit 15 t/m 20 en de bull door elk 3× te raken. {scoring
-          ? 'Op een gesloten nummer dat je tegenstander nog niet dicht heeft, scoor je punten. Wie alles sluit én voorstaat, wint.'
-          : 'Wie als eerste alles sluit, wint.'}
-      </p>
+      {/* Legs & Sets */}
+      <div className="grid grid-cols-2 gap-4">
+        {[
+          { label: 'Legs', value: legs, set: setLegs, min: 1, max: 9, step: 2 },
+          { label: 'Sets', value: sets, set: setSets, min: 1, max: 7, step: 2 },
+        ].map(({ label, value, set, min, max, step }) => (
+          <div key={label} className="flex flex-col gap-2">
+            <span className="text-xs text-slate-600 uppercase tracking-widest font-medium">{label}</span>
+            <div className="flex items-center gap-2 bg-slate-800 border border-slate-700 rounded-xl p-1">
+              <button
+                onClick={() => set(v => Math.max(min, v - step))}
+                className="w-10 h-10 rounded-lg bg-slate-700 text-slate-200 text-xl font-bold flex items-center justify-center active:bg-slate-600"
+              >
+                −
+              </button>
+              <span className="flex-1 text-center text-xl font-bold text-slate-100">{value}</span>
+              <button
+                onClick={() => set(v => Math.min(max, v + step))}
+                className="w-10 h-10 rounded-lg bg-slate-700 text-slate-200 text-xl font-bold flex items-center justify-center active:bg-slate-600"
+              >
+                +
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
 
       <div className="mt-auto pt-2">
         <button
