@@ -11,14 +11,14 @@ export function BottomNav() {
   const { pathname } = useLocation()
 
   return (
-    <nav className="fixed bottom-0 inset-x-0 z-40 flex h-14 border-t border-slate-800 bg-slate-950 pb-[env(safe-area-inset-bottom)] box-content">
+    <nav className="flex-shrink-0 flex border-t border-slate-800 bg-slate-950 pb-[env(safe-area-inset-bottom)]">
       {TABS.map(({ label, path }) => {
         const active = pathname === path
         return (
           <button
             key={path}
             onClick={() => navigate(path)}
-            className="relative flex-1 flex items-center justify-center transition-colors"
+            className="relative flex-1 flex items-center justify-center h-14 transition-colors"
           >
             {active && (
               <span className="absolute top-0 left-1/2 -translate-x-1/2 w-10 h-0.5 bg-blue-500 rounded-full" />
