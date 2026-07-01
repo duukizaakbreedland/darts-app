@@ -7,6 +7,7 @@ import { HistoryModal } from '../components/HistoryModal'
 import { getCheckout, isCheckoutable } from '../lib/checkouts'
 import { useX01Game, playerAverage, legStats, lastVisit } from '../hooks/useX01Game'
 import { simulateCpuTurn } from '../lib/cpuStrategy'
+import { saveX01Game } from '../lib/saveGame'
 
 interface NavState {
   players: string[]
@@ -14,6 +15,7 @@ interface NavState {
   legs: number
   sets: number
   cpuLevels?: (number | null)[]
+  playerIds?: (string | null)[]
 }
 
 export function GameScreen() {
@@ -41,13 +43,26 @@ export function GameScreen() {
   const activeScore = game.scores[active]
   const activeIsCpu = cpuLevels[active] != null
 
-  // Naar game-over springen zodra er een winnaar is
+  // Naar game-over springen zodra er een winnaar is; potje op de achtergrond opslaan
   useEffect(() => {
     if (game.winner !== null) {
+      const winnerIndex = game.winner
+      if (nav.playerIds) {
+        void saveX01Game({
+          startingScore: nav.startingScore,
+          legs: nav.legs,
+          sets: nav.sets,
+          playerIds: nav.playerIds,
+          cpuLevels,
+          winnerIndex,
+          visits: game.visits,
+        })
+      }
       navigate('/game-over', {
-        state: { winner: players[game.winner], players, setsWon: game.setsWon },
+        state: { winner: players[winnerIndex], players, setsWon: game.setsWon },
       })
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [game.winner])
 
   // Computer speelt automatisch zijn beurt
