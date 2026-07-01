@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import './index.css'
+import { ParticipantsProvider } from './context/Participants'
 import { HomeScreen } from './screens/HomeScreen'
 import { NewGameScreen } from './screens/NewGameScreen'
 import { GameScreen } from './screens/GameScreen'
@@ -12,6 +13,7 @@ import { AroundTheClockScreen } from './screens/AroundTheClockScreen'
 
 function App() {
   return (
+    <ParticipantsProvider>
     <BrowserRouter basename="/darts-app">
       <Routes>
         <Route path="/" element={<HomeScreen />} />
@@ -25,6 +27,7 @@ function App() {
         <Route path="/training/atc/play" element={<AroundTheClockScreen />} />
       </Routes>
     </BrowserRouter>
+    </ParticipantsProvider>
   )
 }
 

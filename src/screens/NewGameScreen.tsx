@@ -1,15 +1,16 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { PlayerSelect, type Slot } from '../components/PlayerSelect'
+import { CpuLevelSelect, PlayersSummary } from '../components/CpuLevelSelect'
+import { useParticipants } from '../context/Participants'
 
 const STARTING_SCORES = [301, 501, 701]
 
 export function NewGameScreen() {
   const navigate = useNavigate()
+  const { participants } = useParticipants()
   const [startingScore, setStartingScore] = useState(501)
   const [legs, setLegs] = useState(1)
   const [sets, setSets] = useState(1)
-  const [participants, setParticipants] = useState<Slot[]>([])
 
   const canStart = participants.length >= 2
 
@@ -41,7 +42,8 @@ export function NewGameScreen() {
         </h1>
       </div>
 
-      <PlayerSelect onChange={setParticipants} />
+      <PlayersSummary />
+      <CpuLevelSelect />
 
       {/* Score */}
       <div className="flex flex-col gap-3">

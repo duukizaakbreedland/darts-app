@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { PlayerSelect, type Slot } from '../components/PlayerSelect'
+import { CpuLevelSelect, PlayersSummary } from '../components/CpuLevelSelect'
+import { useParticipants } from '../context/Participants'
 import type { AtcHitMode } from '../hooks/useAroundTheClock'
 
 type Order = 'desc' | 'asc' | 'random'
@@ -36,7 +37,7 @@ function Segmented<T extends string | number | boolean>({
 
 export function AtcSetupScreen() {
   const navigate = useNavigate()
-  const [participants, setParticipants] = useState<Slot[]>([])
+  const { participants } = useParticipants()
   const [order, setOrder] = useState<Order>('asc')
   const [hitMode, setHitMode] = useState<AtcHitMode>('all')
   const [hitsRequired, setHitsRequired] = useState(1)
@@ -76,7 +77,8 @@ export function AtcSetupScreen() {
         </h1>
       </div>
 
-      <PlayerSelect onChange={setParticipants} />
+      <PlayersSummary />
+      <CpuLevelSelect />
 
       <Segmented<Order>
         label="Volgorde"

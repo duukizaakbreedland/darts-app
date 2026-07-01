@@ -17,24 +17,12 @@ import { CSS } from '@dnd-kit/utilities'
 import { restrictToVerticalAxis, restrictToParentElement } from '@dnd-kit/modifiers'
 import { OnScreenKeyboard } from './OnScreenKeyboard'
 import { fetchPlayers, createPlayer, isDuplicateError } from '../lib/players'
-import { CPU_LEVELS, cpuTargetAverage } from '../lib/cpu'
+import { useParticipants, type Slot } from '../context/Participants'
 import type { Player } from '../types/database'
 
 const MAX_PLAYERS = 4
 const PROFILES_CACHE = 'darts.profilesCache'
 const CPU_ID = 'cpu'
-
-// Deelnemer: profiel (cpuLevel = null) of de computer (cpuLevel = 1-10)
-export type Slot = { id: string; name: string; cpuLevel: number | null }
-
-function loadCachedProfiles(): Player[] {
-  try {
-    const raw = localStorage.getItem(PROFILES_CACHE)
-    return raw ? (JSON.parse(raw) as Player[]) : []
-  } catch {
-    return []
-  }
-}
 
 function findMe(list: Player[]): Player | undefined {
   return list.find(p => p.name.trim().toLowerCase() === 'duuk')
@@ -83,18 +71,10 @@ function SortablePlayerRow({ slot, index, onRemove }: RowProps) {
   )
 }
 
-interface PlayerSelectProps {
-  /** Wordt aangeroepen bij elke wijziging met de huidige deelnemers (in volgorde). */
-  onChange: (slots: Slot[]) => void
-}
-
-export function PlayerSelect({ onChange }: PlayerSelectProps) {
-  const [profiles, setProfiles] = useState<Player[]>(() => loadCachedProfiles())
-  const [selected, setSelected] = useState<Slot[]>(() => {
-    const me = findMe(loadCachedProfiles())
-    return me ? [{ id: me.id, name: me.name, cpuLevel: null }] : []
-  })
-  const [loading, setLoading] = useState(() => loadCachedProfiles().length === 0)
+export function PlayerLobby() {
+  const { participants, setParticipants } = useParticipants()
+  const [profiles, setProfiles] = useState<Player[]>([])
+  const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
@@ -103,50 +83,40 @@ export function PlayerSelect({ onChange }: PlayerSelectProps) {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }))
 
   useEffect(() => {
-    onChange(selected)
-  }, [selected, onChange])
-
-  useEffect(() => {
     fetchPlayers()
       .then(list => {
         setProfiles(list)
         localStorage.setItem(PROFILES_CACHE, JSON.stringify(list))
-        setSelected(prev => {
-          if (prev.length > 0) return prev
+        // Eerste keer: Duuk voorselecteren als er nog niemand gekozen is
+        if (participants.length === 0) {
           const me = findMe(list)
-          return me ? [{ id: me.id, name: me.name, cpuLevel: null }] : prev
-        })
+          if (me) setParticipants([{ id: me.id, name: me.name, cpuLevel: null }])
+        }
       })
       .catch(() => setError('Kon profielen niet laden. Controleer je internetverbinding.'))
       .finally(() => setLoading(false))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const hasCpu = selected.some(s => s.cpuLevel != null)
-  const cpuLevel = selected.find(s => s.cpuLevel != null)?.cpuLevel ?? 1
-  const pickable = profiles.filter(p => !selected.some(s => s.id === p.id))
+  const hasCpu = participants.some(s => s.cpuLevel != null)
+  const pickable = profiles.filter(p => !participants.some(s => s.id === p.id))
 
   const addProfile = (p: Player) => {
-    setSelected(prev => [...prev, { id: p.id, name: p.name, cpuLevel: null }])
+    setParticipants([...participants, { id: p.id, name: p.name, cpuLevel: null }])
     setShowPicker(false)
   }
   const addComputer = () => {
-    setSelected(prev => [...prev, { id: CPU_ID, name: 'Computer', cpuLevel: 1 }])
+    setParticipants([...participants, { id: CPU_ID, name: 'Computer', cpuLevel: 1 }])
     setShowPicker(false)
   }
-  const setCpuLevel = (level: number) => {
-    const clamped = Math.min(CPU_LEVELS, Math.max(1, level))
-    setSelected(prev => prev.map(s => (s.cpuLevel != null ? { ...s, cpuLevel: clamped } : s)))
-  }
-  const removeSlot = (id: string) => setSelected(prev => prev.filter(s => s.id !== id))
+  const removeSlot = (id: string) => setParticipants(participants.filter(s => s.id !== id))
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event
     if (over && active.id !== over.id) {
-      setSelected(prev => {
-        const oldIndex = prev.findIndex(s => s.id === active.id)
-        const newIndex = prev.findIndex(s => s.id === over.id)
-        return arrayMove(prev, oldIndex, newIndex)
-      })
+      const oldIndex = participants.findIndex(s => s.id === active.id)
+      const newIndex = participants.findIndex(s => s.id === over.id)
+      setParticipants(arrayMove(participants, oldIndex, newIndex))
     }
   }
 
@@ -158,14 +128,12 @@ export function PlayerSelect({ onChange }: PlayerSelectProps) {
     setError(null)
     try {
       const player = await createPlayer(name)
-      setProfiles(prev => {
-        const next = [...prev, player].sort((a, b) => a.name.localeCompare(b.name))
-        localStorage.setItem(PROFILES_CACHE, JSON.stringify(next))
-        return next
-      })
-      setSelected(prev =>
-        prev.length < MAX_PLAYERS ? [...prev, { id: player.id, name: player.name, cpuLevel: null }] : prev
-      )
+      const next = [...profiles, player].sort((a, b) => a.name.localeCompare(b.name))
+      setProfiles(next)
+      localStorage.setItem(PROFILES_CACHE, JSON.stringify(next))
+      if (participants.length < MAX_PLAYERS) {
+        setParticipants([...participants, { id: player.id, name: player.name, cpuLevel: null }])
+      }
     } catch (e) {
       setError(
         isDuplicateError(e)
@@ -178,70 +146,42 @@ export function PlayerSelect({ onChange }: PlayerSelectProps) {
   }
 
   return (
-    <>
+    <div className="flex flex-col gap-3">
+      <div className="flex items-center justify-between">
+        <span className="text-xs text-slate-600 uppercase tracking-widest font-medium">Spelers</span>
+        {participants.length > 1 && <span className="text-[11px] text-slate-600">⠿ sleep · nr. 1 begint</span>}
+      </div>
+
       {error && (
         <div className="bg-red-900/20 border border-red-800/40 text-red-300 text-sm rounded-xl px-4 py-3">
           {error}
         </div>
       )}
 
-      {/* Spelers */}
-      <div className="flex flex-col gap-3">
-        <div className="flex items-center justify-between">
-          <span className="text-xs text-slate-600 uppercase tracking-widest font-medium">Spelers</span>
-          {selected.length > 1 && <span className="text-[11px] text-slate-600">⠿ sleep · nr. 1 begint</span>}
-        </div>
+      {participants.length > 0 && (
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+          modifiers={[restrictToVerticalAxis, restrictToParentElement]}
+        >
+          <SortableContext items={participants.map(s => s.id)} strategy={verticalListSortingStrategy}>
+            <div className="flex flex-col gap-2">
+              {participants.map((slot, i) => (
+                <SortablePlayerRow key={slot.id} slot={slot} index={i} onRemove={() => removeSlot(slot.id)} />
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
+      )}
 
-        {selected.length > 0 && (
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragEnd={handleDragEnd}
-            modifiers={[restrictToVerticalAxis, restrictToParentElement]}
-          >
-            <SortableContext items={selected.map(s => s.id)} strategy={verticalListSortingStrategy}>
-              <div className="flex flex-col gap-2">
-                {selected.map((slot, i) => (
-                  <SortablePlayerRow key={slot.id} slot={slot} index={i} onRemove={() => removeSlot(slot.id)} />
-                ))}
-              </div>
-            </SortableContext>
-          </DndContext>
-        )}
-
-        {selected.length < MAX_PLAYERS && (
-          <button
-            onClick={() => setShowPicker(true)}
-            className="h-12 rounded-xl border border-dashed border-slate-700 text-slate-500 text-sm hover:border-slate-500 hover:text-slate-300 active:bg-slate-800 transition-colors"
-          >
-            + Speler toevoegen
-          </button>
-        )}
-      </div>
-
-      {/* Computer-niveau */}
-      {hasCpu && (
-        <div className="flex flex-col gap-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-slate-600 uppercase tracking-widest font-medium">Computer-niveau</span>
-            <span className="text-[11px] text-slate-500">~{cpuTargetAverage(cpuLevel)} gem.</span>
-          </div>
-          <div className="flex gap-1.5">
-            {Array.from({ length: CPU_LEVELS }, (_, i) => i + 1).map(lvl => (
-              <button
-                key={lvl}
-                onClick={() => setCpuLevel(lvl)}
-                className={`flex-1 h-12 rounded-lg text-base font-bold transition-colors ${
-                  cpuLevel === lvl
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-slate-800 border border-slate-700 text-slate-400 active:bg-slate-700'
-                }`}
-              >
-                {lvl}
-              </button>
-            ))}
-          </div>
-        </div>
+      {participants.length < MAX_PLAYERS && (
+        <button
+          onClick={() => setShowPicker(true)}
+          className="h-12 rounded-xl border border-dashed border-slate-700 text-slate-500 text-sm hover:border-slate-500 hover:text-slate-300 active:bg-slate-800 transition-colors"
+        >
+          + Speler toevoegen
+        </button>
       )}
 
       {/* Kiezer-modal */}
@@ -304,6 +244,6 @@ export function PlayerSelect({ onChange }: PlayerSelectProps) {
       )}
 
       {creating && <OnScreenKeyboard label="Nieuw profiel" initialValue="" onClose={handleCreateProfile} />}
-    </>
+    </div>
   )
 }
