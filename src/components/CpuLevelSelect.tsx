@@ -37,32 +37,3 @@ export function CpuLevelSelect() {
     </div>
   )
 }
-
-/** Compacte, niet-bewerkbare samenvatting van wie er meespeelt. */
-export function PlayersSummary() {
-  const { participants } = useParticipants()
-  return (
-    <div className="flex flex-col gap-2">
-      <span className="text-xs text-slate-600 uppercase tracking-widest font-medium">Spelers</span>
-      {participants.length >= 2 ? (
-        <div className="flex flex-wrap gap-2">
-          {participants.map((s, i) => (
-            <span
-              key={s.id}
-              className={`h-9 px-3 rounded-full text-sm font-medium flex items-center gap-1.5 ${
-                s.cpuLevel != null
-                  ? 'bg-blue-950/40 border border-blue-800/50 text-blue-200'
-                  : 'bg-slate-800 border border-slate-700 text-slate-200'
-              }`}
-            >
-              <span className="text-slate-500 text-xs">{i + 1}</span>
-              {s.name}
-            </span>
-          ))}
-        </div>
-      ) : (
-        <p className="text-slate-500 text-sm">Kies minstens twee spelers op het home-scherm.</p>
-      )}
-    </div>
-  )
-}

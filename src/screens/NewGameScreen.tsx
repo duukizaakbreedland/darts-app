@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { CpuLevelSelect, PlayersSummary } from '../components/CpuLevelSelect'
+import { CpuLevelSelect } from '../components/CpuLevelSelect'
 import { useParticipants } from '../context/Participants'
 
 const STARTING_SCORES = [301, 501, 701]
@@ -42,7 +42,6 @@ export function NewGameScreen() {
         </h1>
       </div>
 
-      <PlayersSummary />
       <CpuLevelSelect />
 
       {/* Score */}

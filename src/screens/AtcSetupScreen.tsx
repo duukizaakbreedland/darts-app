@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { CpuLevelSelect, PlayersSummary } from '../components/CpuLevelSelect'
+import { CpuLevelSelect } from '../components/CpuLevelSelect'
 import { useParticipants } from '../context/Participants'
 import type { AtcHitMode } from '../hooks/useAroundTheClock'
 
@@ -77,7 +77,6 @@ export function AtcSetupScreen() {
         </h1>
       </div>
 
-      <PlayersSummary />
       <CpuLevelSelect />
 
       <Segmented<Order>
