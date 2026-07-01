@@ -6,7 +6,7 @@ export function SettingsScreen() {
 
   return (
     <div className="flex flex-col min-h-svh bg-slate-900">
-      <div className="flex-1 flex flex-col px-5 gap-6 pb-6 pt-[calc(env(safe-area-inset-top)_+_1.5rem)]">
+      <div className="flex-1 flex flex-col px-5 gap-6 pb-[calc(4.5rem_+_env(safe-area-inset-bottom))] pt-[calc(env(safe-area-inset-top)_+_1.5rem)]">
         <h1 className="text-3xl font-bold text-slate-100 tracking-tight">Instellingen</h1>
 
         <div className="flex flex-col gap-2">

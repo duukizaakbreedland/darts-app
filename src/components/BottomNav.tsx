@@ -11,7 +11,7 @@ export function BottomNav() {
   const { pathname } = useLocation()
 
   return (
-    <nav className="flex border-t border-slate-800 bg-slate-950 pb-[env(safe-area-inset-bottom)]">
+    <nav className="fixed bottom-0 inset-x-0 z-40 flex border-t border-slate-800 bg-slate-950 pb-[env(safe-area-inset-bottom)]">
       {TABS.map(({ label, path }) => {
         const active = pathname === path
         return (
