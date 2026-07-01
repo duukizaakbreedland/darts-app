@@ -3,7 +3,7 @@ import { BottomNav } from '../components/BottomNav'
 export function StatsScreen() {
   return (
     <div className="flex flex-col min-h-svh bg-slate-900">
-      <div className="flex-1 flex flex-col px-5 gap-6 pb-[calc(4.5rem_+_env(safe-area-inset-bottom))] pt-[calc(env(safe-area-inset-top)_+_1.5rem)]">
+      <div className="flex-1 flex flex-col px-5 gap-6 pb-[calc(3.5rem_+_env(safe-area-inset-bottom))] pt-[calc(env(safe-area-inset-top)_+_1.5rem)]">
         <h1 className="text-3xl font-bold text-slate-100 tracking-tight">Statistieken</h1>
 
         <div className="flex-1 flex flex-col items-center justify-center text-center gap-2">
